@@ -1,3 +1,22 @@
+import { Routes, Route } from 'react-router-dom'
+import AppLayout from '@/components/layout/AppLayout'
+import { LayoutDashboard, Package, AlertTriangle } from 'lucide-react'
+import OverviewPage from './OverviewPage'
+import BookingsPage from './BookingsPage'
+
+const navItems = [
+  { label: 'Vue d\'ensemble',  path: '/sender',          icon: <LayoutDashboard size={16} /> },
+  { label: 'Mes réservations', path: '/sender/bookings', icon: <Package size={16} /> },
+  { label: 'Mes litiges',      path: '/sender/disputes', icon: <AlertTriangle size={16} /> },
+]
+
 export default function SenderDashboard() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Dashboard Expéditeur</h1></div>
+  return (
+    <AppLayout navItems={navItems}>
+      <Routes>
+        <Route index          element={<OverviewPage />} />
+        <Route path="bookings" element={<BookingsPage />} />
+      </Routes>
+    </AppLayout>
+  )
 }
