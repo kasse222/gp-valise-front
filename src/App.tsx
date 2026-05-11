@@ -3,12 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'react-hot-toast'
 
-import LoginPage from '@/pages/auth/LoginPage'
-import RegisterPage from '@/pages/auth/RegisterPage'
+import LoginPage       from '@/pages/auth/LoginPage'
+import RegisterPage    from '@/pages/auth/RegisterPage'
 import SenderDashboard from '@/pages/sender/DashboardPage'
 import TravelerDashboard from '@/pages/traveler/DashboardPage'
 
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, isSender } from '@/store/authStore'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,10 +25,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
-  const isSender   = useAuthStore((s) => s.isSender())
-  if (isAuthenticated) {
-    return <Navigate to={isSender ? '/sender' : '/traveler'} replace />
+  const user = useAuthStore((s) => s.user)
+  if (user) {
+    return <Navigate to={isSender(user.role) ? '/sender' : '/traveler'} replace />
   }
   return <>{children}</>
 }
