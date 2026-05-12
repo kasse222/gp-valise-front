@@ -1,3 +1,25 @@
+import { Routes, Route } from "react-router-dom";
+import AppLayout from "@/components/layout/AppLayout";
+import { LayoutDashboard, Plane, Wallet } from "lucide-react";
+
+import OverviewPage from "./OverviewPage";
+import TripsPage from "./TripsPage";
+import PaymentsPage from "./PaymentsPage";
+
+const navItems = [
+  { label: "Vue d'ensemble", path: "/traveler",          icon: <LayoutDashboard size={16} /> },
+  { label: "Mes trajets",    path: "/traveler/trips",    icon: <Plane size={16} /> },
+  { label: "Mes paiements",  path: "/traveler/payments", icon: <Wallet size={16} /> },
+];
+
 export default function TravelerDashboard() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Dashboard Voyageur</h1></div>
+  return (
+    <AppLayout navItems={navItems}>
+      <Routes>
+        <Route index              element={<OverviewPage />} />
+        <Route path="trips"       element={<TripsPage />} />
+        <Route path="payments"    element={<PaymentsPage />} />
+      </Routes>
+    </AppLayout>
+  );
 }

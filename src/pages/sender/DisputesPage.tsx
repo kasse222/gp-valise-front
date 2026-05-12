@@ -6,6 +6,13 @@ import { useBookings } from "@/hooks/useBookings";
 import { formatDate } from "@/lib/utils";
 import type { Booking } from "@/types";
 
+function getDisputedAt(booking: Booking): string {
+  const entry = booking.status_history.find(
+    (h) => h.new_status === "en_litige"
+  );
+  return entry ? entry.changed_at : booking.created_at;
+}
+
 function DisputeRow({ booking }: { booking: Booking }) {
   const departure = booking.trip?.departure ?? "—";
   const destination = booking.trip?.destination ?? "—";
@@ -25,7 +32,7 @@ function DisputeRow({ booking }: { booking: Booking }) {
             {departure} → {destination}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {kgDisplay} · {formatDate(booking.created_at)}
+            {kgDisplay} · Litige ouvert le {formatDate(getDisputedAt(booking))}
           </p>
         </div>
       </div>
@@ -64,9 +71,7 @@ export default function DisputesPage() {
   if (disputes.length === 0) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Mes litiges</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Mes litiges</h1>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Scale className="w-12 h-12 text-gray-300 mb-4" />
           <p className="text-gray-500 font-medium">Aucun litige en cours</p>
