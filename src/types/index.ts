@@ -153,6 +153,8 @@ export interface BookingResource {
 
 export type Booking = BookingResource;
 
+export type Trip = TripResource;
+
 // ── Pagination ────────────────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
