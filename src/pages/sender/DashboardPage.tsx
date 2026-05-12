@@ -4,6 +4,7 @@ import { LayoutDashboard, Package, AlertTriangle } from 'lucide-react'
 import OverviewPage from './OverviewPage'
 import BookingsPage from './BookingsPage'
 import BookingDetailPage from './BookingDetailPage'
+import DisputesPage from './DisputesPage'
 
 const navItems = [
   { label: 'Vue d\'ensemble',  path: '/sender',          icon: <LayoutDashboard size={16} /> },
@@ -18,6 +19,7 @@ export default function SenderDashboard() {
         <Route index          element={<OverviewPage />} />
         <Route path="bookings" element={<BookingsPage />} />
         <Route path="bookings/:id" element={<BookingDetailPage />} />
+        <Route path="disputes" element={<DisputesPage />} />
       </Routes>
     </AppLayout>
   )
