@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import client from '@/api/client'
 import toast from 'react-hot-toast'
-import { LayoutDashboard, Package, AlertTriangle, LogOut, User } from 'lucide-react'
+import { LogOut, User } from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -33,7 +33,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full">
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-screen">
         {/* Logo */}
         <div className="px-6 py-5 border-b border-gray-200">
           <h1 className="text-xl font-bold text-indigo-600">GP-Valise</h1>
