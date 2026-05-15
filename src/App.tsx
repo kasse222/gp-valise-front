@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'react-hot-toast'
 
 import LandingPage     from '@/pages/public/LandingPage'
+import TripsPublicPage from '@/pages/public/TripsPublicPage'
 import LoginPage       from '@/pages/auth/LoginPage'
 import RegisterPage    from '@/pages/auth/RegisterPage'
 import SenderDashboard from '@/pages/sender/DashboardPage'
@@ -40,6 +41,7 @@ export default function App() {
         <Routes>
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/trips" element={<TripsPublicPage />} />
 
           {/* Public */}
           <Route path="/login" element={

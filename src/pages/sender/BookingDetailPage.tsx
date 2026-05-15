@@ -1,19 +1,43 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import type { AxiosError } from "axios";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button, Card, Spinner, BookingStatusBadge } from "@/components/ui";
 import { useBooking } from "@/hooks/useBooking";
 import { useTransactions } from "@/hooks/useTransactions";
+import { payBooking } from "@/api/bookings";
 import { formatAmount, formatDate } from "@/lib/utils";
+
+function expiresInMinutes(isoDate: string): string {
+  const diff = Math.floor((new Date(isoDate).getTime() - Date.now()) / 60_000);
+  if (diff <= 0) return "expiré";
+  if (diff < 60) return `${diff} min`;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bookingId = Number(id);
+  const queryClient = useQueryClient();
 
   const { data: booking, isLoading, isError, refetch } = useBooking(bookingId);
   const { data: allTransactions, isError: isTxError, error: txError } = useTransactions();
+
+  const payMutation = useMutation({
+    mutationFn: () => payBooking(bookingId),
+    onSuccess: () => {
+      toast.success("Paiement effectué !");
+      queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? "Une erreur est survenue";
+      toast.error(msg);
+    },
+  });
 
   if (isLoading) {
     return (
@@ -136,6 +160,50 @@ export default function BookingDetailPage() {
               </div>
             ))}
           </div>
+        </Card>
+      )}
+
+      {/* Paiement */}
+      {booking.status === "en_paiement" && (
+        <Card className="mb-4 border-blue-200 bg-blue-50">
+          <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-3">
+            Paiement
+          </h2>
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-gray-700">Montant total</span>
+            <span className="text-lg font-bold text-gray-900">
+              {formatAmount(
+                booking.items.reduce((sum, item) => sum + item.price, 0)
+              )}
+            </span>
+          </div>
+
+          {booking.payment_expires_at && (
+            <div className="flex items-center gap-1.5 text-sm text-amber-600 mb-4">
+              <Clock className="w-4 h-4 flex-shrink-0" />
+              <span>
+                Expire dans{" "}
+                <span className="font-semibold">
+                  {expiresInMinutes(booking.payment_expires_at)}
+                </span>
+              </span>
+            </div>
+          )}
+
+          <Button
+            variant="primary"
+            className="w-full"
+            loading={payMutation.isPending}
+            onClick={() => payMutation.mutate()}
+          >
+            Payer maintenant
+          </Button>
+
+          <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-3">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Paiement sécurisé — simulé (FakeProvider)
+          </p>
         </Card>
       )}
 
