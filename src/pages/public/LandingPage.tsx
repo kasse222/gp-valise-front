@@ -93,7 +93,7 @@ function TripCard({ from, to, date, pricePerKg, available }: TripCardProps) {
         </div>
       </div>
       <Link
-        to="/login"
+        to="/trips"
         className="w-full mt-3 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-4 py-2 rounded-full transition-colors duration-200 text-center"
       >
         Réserver
@@ -190,7 +190,7 @@ export default function LandingPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Link
-              to="/login"
+              to="/trips"
               className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm" style={{ color: '#1B3A6B' }}
             >
               Rechercher un trajet
@@ -307,7 +307,7 @@ export default function LandingPage() {
                 />
               </div>
               <Link
-                to="/login"
+                to="/trips"
                 className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-center text-sm transition-colors duration-200"
               >
                 Rechercher

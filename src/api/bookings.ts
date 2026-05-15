@@ -1,6 +1,15 @@
 import client from "./client";
 import type { Booking, PaginatedResponse } from "@/types";
 
+export interface CreateBookingPayload {
+  trip_id: number;
+  items: Array<{
+    luggage_id: number;
+    kg_reserved: number;
+  }>;
+  comment?: string;
+}
+
 export async function getBookings(): Promise<Booking[]> {
   const { data } = await client.get<PaginatedResponse<Booking>>("/bookings");
   return data.data;
@@ -9,4 +18,25 @@ export async function getBookings(): Promise<Booking[]> {
 export async function getBooking(id: number): Promise<Booking> {
   const { data } = await client.get<{ data: Booking }>(`/bookings/${id}`);
   return data.data;
+}
+
+export interface PayBookingResponse {
+  transaction_id: number;
+  booking_id: number;
+  amount: number;
+  status: string;
+}
+
+export async function createBooking(
+  payload: CreateBookingPayload
+): Promise<Booking> {
+  const { data } = await client.post<{ data: Booking }>("/bookings", payload);
+  return data.data;
+}
+
+export async function payBooking(bookingId: number): Promise<PayBookingResponse> {
+  const { data } = await client.post<PayBookingResponse>(
+    `/bookings/${bookingId}/pay`
+  );
+  return data;
 }
