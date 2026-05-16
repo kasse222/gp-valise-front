@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
@@ -23,12 +24,17 @@ export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bookingId = Number(id);
   const queryClient = useQueryClient();
+  const [phone, setPhone] = useState("");
 
   const { data: booking, isLoading, isError, refetch } = useBooking(bookingId);
   const { data: allTransactions, isError: isTxError, error: txError } = useTransactions();
 
   const payMutation = useMutation({
-    mutationFn: () => payBooking(bookingId),
+    mutationFn: () => payBooking(bookingId, {
+      method: "mobile_money",
+      phone: phone || undefined,
+      country: "SN",
+    }),
     onSuccess: () => {
       toast.success("Paiement effectué !");
       queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
@@ -190,6 +196,14 @@ export default function BookingDetailPage() {
               </span>
             </div>
           )}
+
+          <input
+            type="tel"
+            placeholder="+221 77 000 00 00"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
 
           <Button
             variant="primary"
