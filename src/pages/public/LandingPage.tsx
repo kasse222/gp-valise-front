@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getTrips } from "@/api/trips";
 import {
   User,
   Package,
@@ -71,11 +73,13 @@ interface TripCardProps {
   date: string;
   pricePerKg: string;
   available: string;
+  traveler?: string;
+  onSee: () => void;
 }
 
-function TripCard({ from, to, date, pricePerKg, available }: TripCardProps) {
+function TripCard({ from, to, date, pricePerKg, available, traveler, onSee }: TripCardProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 font-semibold text-gray-900">
         <span>{from}</span>
         <Plane className="w-3 h-3 text-gray-400 shrink-0" />
@@ -91,21 +95,35 @@ function TripCard({ from, to, date, pricePerKg, available }: TripCardProps) {
           <span className="text-gray-300">·</span>
           <span>{available}</span>
         </div>
+        {traveler && <span className="text-gray-400">Par {traveler}</span>}
       </div>
-      <Link
-        to="/trips"
+      <button
+        onClick={onSee}
         className="w-full mt-3 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-4 py-2 rounded-full transition-colors duration-200 text-center"
       >
-        Réserver
-      </Link>
+        Voir ce trajet
+      </button>
     </div>
   );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  const [year, month, day] = dateStr.split('T')[0].split('-');
+  return `${day}/${month}/${year}`;
+}
+
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { data: trips, isLoading } = useQuery({
+    queryKey: ['trips-public'],
+    queryFn: getTrips,
+    staleTime: 60_000,
+  });
+  const previewTrips = trips?.slice(0, 3) ?? [];
 
   const navLinks = [
     { label: "Accueil", href: "/" },
@@ -314,32 +332,39 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="border-t border-gray-100 p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <TripCard
-                from="Paris"
-                to="Casablanca"
-                date="15 juin 2026"
-                pricePerKg="8€/kg"
-                available="15 kg dispo"
-              />
-              <TripCard
-                from="Dakar"
-                to="Paris"
-                date="20 juin 2026"
-                pricePerKg="6€/kg"
-                available="22 kg dispo"
-              />
-              <TripCard
-                from="Lyon"
-                to="Tokyo"
-                date="25 juin 2026"
-                pricePerKg="12€/kg"
-                available="8 kg dispo"
-              />
+              {isLoading ? (
+                <>
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                </>
+              ) : previewTrips.length === 0 ? (
+                <div className="col-span-3 text-center py-8 text-gray-500">
+                  <p>Aucun trajet disponible pour le moment.</p>
+                  <p>Revenez bientôt !</p>
+                </div>
+              ) : (
+                previewTrips.map((trip) => (
+                  <TripCard
+                    key={trip.id}
+                    from={trip.departure}
+                    to={trip.destination}
+                    date={formatDate(trip.date)}
+                    pricePerKg={(trip.price_per_kg / 100).toFixed(2) + ' €/kg'}
+                    available={(trip.grams_disponible / 1000).toFixed(1) + ' kg dispo'}
+                    traveler={trip.user?.full_name}
+                    onSee={() => navigate('/trips')}
+                  />
+                ))
+              )}
             </div>
           </div>
-          <p className="text-center text-sm text-gray-400 mt-4">
-            Inscrivez-vous pour voir tous les trajets disponibles
-          </p>
+          <button
+            onClick={() => navigate('/trips')}
+            className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
+          >
+            Voir tous les trajets disponibles →
+          </button>
         </div>
       </section>
 
