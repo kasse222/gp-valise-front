@@ -27,6 +27,12 @@ export interface PayBookingResponse {
   status: string;
 }
 
+export interface PayBookingPayload {
+  method?: string;
+  phone?: string;
+  country?: string;
+}
+
 export async function createBooking(
   payload: CreateBookingPayload
 ): Promise<Booking> {
@@ -34,9 +40,13 @@ export async function createBooking(
   return data.data;
 }
 
-export async function payBooking(bookingId: number): Promise<PayBookingResponse> {
+export async function payBooking(
+  bookingId: number,
+  payload: PayBookingPayload = {}
+): Promise<PayBookingResponse> {
   const { data } = await client.post<PayBookingResponse>(
-    `/bookings/${bookingId}/pay`
+    `/bookings/${bookingId}/pay`,
+    payload
   );
   return data;
 }
