@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plane, ChevronRight, Filter } from "lucide-react";
 
 import { Card, Spinner, Button } from "@/components/ui";
@@ -60,6 +60,7 @@ function TripRow({ trip }: { trip: Trip }) {
 }
 
 export default function TripsPage() {
+  const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useTrips();
   const [activeStatus, setActiveStatus] = useState<TripStatus | null>(null);
 
@@ -96,7 +97,12 @@ export default function TripsPage() {
   if (trips.length === 0) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Mes trajets</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Mes trajets</h1>
+          <Button variant="primary" size="sm" onClick={() => navigate("/traveler/trips/new")}>
+            Proposer un trajet
+          </Button>
+        </div>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Plane className="w-12 h-12 text-gray-300 mb-4" />
           <p className="text-gray-500 font-medium">Aucun trajet pour le moment</p>
@@ -112,7 +118,12 @@ export default function TripsPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mes trajets</h1>
-        <span className="text-sm text-gray-500">{trips.length} au total</span>
+        <div className="flex items-center gap-3">
+          <Button variant="primary" size="sm" onClick={() => navigate("/traveler/trips/new")}>
+            Proposer un trajet
+          </Button>
+          <span className="text-sm text-gray-500">{trips.length} au total</span>
+        </div>
       </div>
 
       {usedStatuses.length > 1 && (

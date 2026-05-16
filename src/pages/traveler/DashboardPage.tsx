@@ -5,6 +5,7 @@ import { LayoutDashboard, Plane, Wallet } from "lucide-react";
 import OverviewPage from "./OverviewPage";
 import TripsPage from "./TripsPage";
 import TripDetailPage from "./TripDetailPage";
+import CreateTripPage from "./CreateTripPage";
 import PaymentsPage from "./PaymentsPage";
 
 const navItems = [
@@ -19,6 +20,7 @@ export default function TravelerDashboard() {
       <Routes>
         <Route index              element={<OverviewPage />} />
         <Route path="trips"       element={<TripsPage />} />
+        <Route path="trips/new"   element={<CreateTripPage />} />
         <Route path="trips/:id"   element={<TripDetailPage />} />
         <Route path="payments"    element={<PaymentsPage />} />
       </Routes>
