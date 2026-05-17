@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getTrips } from "@/api/trips";
+import { useAuthStore, isSender } from "@/store/authStore";
+import { formatDate } from "@/lib/utils";
+import type { Trip } from "@/types";
 import {
   User,
   Package,
@@ -15,17 +18,15 @@ import {
   X,
 } from "lucide-react";
 
-// ─── Local sub-components ────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-interface StepProps {
-  number: number;
-  text: string;
-}
-
-function Step({ number, text }: StepProps) {
+function Step({ number, text }: { number: number; text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center" style={{ backgroundColor: '#EBF4FF', color: '#1B3A6B' }}>
+      <span
+        className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center"
+        style={{ backgroundColor: "#EBF4FF", color: "#1B3A6B" }}
+      >
         {number}
       </span>
       <p className="text-gray-600 text-sm leading-relaxed pt-0.5">{text}</p>
@@ -33,16 +34,21 @@ function Step({ number, text }: StepProps) {
   );
 }
 
-interface FeatureCardProps {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
   icon: React.ReactNode;
   title: string;
   description: string;
-}
-
-function FeatureCard({ icon, title, description }: FeatureCardProps) {
+}) {
   return (
     <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EBF4FF' }}>
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center"
+        style={{ backgroundColor: "#EBF4FF" }}
+      >
         {icon}
       </div>
       <div>
@@ -53,12 +59,13 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
   );
 }
 
-interface SearchFieldProps {
+function SearchField({
+  icon,
+  placeholder,
+}: {
   icon: React.ReactNode;
   placeholder: string;
-}
-
-function SearchField({ icon, placeholder }: SearchFieldProps) {
+}) {
   return (
     <div className="flex items-center gap-2 flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
       <span className="text-gray-400 shrink-0">{icon}</span>
@@ -67,35 +74,29 @@ function SearchField({ icon, placeholder }: SearchFieldProps) {
   );
 }
 
-interface TripCardProps {
-  from: string;
-  to: string;
-  date: string;
-  pricePerKg: string;
-  available: string;
-  traveler?: string;
-  onSee: () => void;
-}
-
-function TripCard({ from, to, date, pricePerKg, available, traveler, onSee }: TripCardProps) {
+function TripCard({ trip, onSee }: { trip: Trip; onSee: () => void }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 font-semibold text-gray-900">
-        <span>{from}</span>
+        <span>{trip.departure}</span>
         <Plane className="w-3 h-3 text-gray-400 shrink-0" />
-        <span>{to}</span>
+        <span>{trip.destination}</span>
       </div>
       <div className="flex flex-col gap-1.5 text-sm text-gray-500">
         <span className="flex items-center gap-1.5">
           <Calendar className="h-3.5 w-3.5 text-gray-400" />
-          {date}
+          {formatDate(trip.date ?? "")}
         </span>
         <div className="flex items-center gap-3">
-          <span className="font-bold" style={{ color: '#1B3A6B' }}>{pricePerKg}</span>
+          <span className="font-bold" style={{ color: "#1B3A6B" }}>
+            {(trip.price_per_kg / 100).toFixed(2)} €/kg
+          </span>
           <span className="text-gray-300">·</span>
-          <span>{available}</span>
+          <span>{(trip.grams_disponible / 1000).toFixed(1)} kg dispo</span>
         </div>
-        {traveler && <span className="text-gray-400">Par {traveler}</span>}
+        {trip.user?.full_name && (
+          <span className="text-gray-400">Par {trip.user.full_name}</span>
+        )}
       </div>
       <button
         onClick={onSee}
@@ -109,17 +110,19 @@ function TripCard({ from, to, date, pricePerKg, available, traveler, onSee }: Tr
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—';
-  const [year, month, day] = dateStr.split('T')[0].split('-');
-  return `${day}/${month}/${year}`;
-}
-
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  const user = useAuthStore((s) => s.user);
+  const dashboardPath = user
+    ? isSender(user.role)
+      ? "/sender"
+      : "/traveler"
+    : null;
+
   const { data: trips, isLoading } = useQuery({
-    queryKey: ['trips-public'],
+    queryKey: ["trips-public"],
     queryFn: getTrips,
     staleTime: 60_000,
   });
@@ -138,35 +141,43 @@ export default function LandingPage() {
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-
-          {/* Logo */}
           <Link to="/" className="shrink-0">
-            <img src="/logo-nav-hori.png" alt="GP-Valise" style={{ height: '52px' }} />
+            <img src="/logo-nav-hori.png" alt="Safe Move" style={{ height: "52px" }} />
           </Link>
 
-          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className={`text-sm transition-colors duration-200 ${link.href === "/" ? "font-medium" : "text-gray-600 hover:text-[#1B3A6B]"}`}
-                style={link.href === "/" ? { color: '#1B3A6B' } : undefined}
+                className={`text-sm transition-colors duration-200 ${
+                  link.href === "/" ? "font-medium" : "text-gray-600 hover:text-[#1B3A6B]"
+                }`}
+                style={link.href === "/" ? { color: "#1B3A6B" } : undefined}
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          {/* CTA + burger */}
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors duration-200"
-            >
-              <User className="h-4 w-4" />
-              Se connecter
-            </Link>
+            {dashboardPath ? (
+              <Link
+                to={dashboardPath}
+                className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors duration-200"
+              >
+                <User className="h-4 w-4" />
+                Mon espace
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors duration-200"
+              >
+                <User className="h-4 w-4" />
+                Se connecter
+              </Link>
+            )}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-gray-600"
@@ -177,7 +188,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 flex flex-col gap-3">
             {navLinks.map((link) => (
@@ -195,7 +205,10 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="pt-20 min-h-[75vh] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0F2544 0%, #1B3A6B 50%, #2B6CB0 100%)' }}>
+      <section
+        className="pt-20 min-h-[75vh] flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #0F2544 0%, #1B3A6B 50%, #2B6CB0 100%)" }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-8">
           <div className="flex flex-col gap-4 max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
@@ -209,7 +222,8 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Link
               to="/trips"
-              className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm" style={{ color: '#1B3A6B' }}
+              className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm"
+              style={{ color: "#1B3A6B" }}
             >
               Rechercher un trajet
             </Link>
@@ -230,16 +244,15 @@ export default function LandingPage() {
             Comment ça marche ?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
-
-            {/* Expéditeurs */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EBF4FF' }}>
-                  <Package className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: "#EBF4FF" }}
+                >
+                  <Package className="h-5 w-5" style={{ color: "#1B3A6B" }} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Pour les expéditeurs
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">Pour les expéditeurs</h3>
               </div>
               <div className="flex flex-col gap-4 pl-2">
                 <Step number={1} text="Créez votre bagage avec ses dimensions et poids" />
@@ -248,16 +261,15 @@ export default function LandingPage() {
                 <Step number={4} text="Suivez votre colis jusqu'à la livraison" />
               </div>
             </div>
-
-            {/* Voyageurs */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EBF4FF' }}>
-                  <Plane className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: "#EBF4FF" }}
+                >
+                  <Plane className="h-5 w-5" style={{ color: "#1B3A6B" }} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Pour les voyageurs
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">Pour les voyageurs</h3>
               </div>
               <div className="flex flex-col gap-4 pl-2">
                 <Step number={1} text="Publiez votre trajet avec la capacité disponible" />
@@ -278,17 +290,17 @@ export default function LandingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
-              icon={<Shield className="h-6 w-6" style={{ color: '#1B3A6B' }} />}
+              icon={<Shield className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
               title="Sécurisé"
               description="KYC, paiement sécurisé avec système escrow 48h, et suivi complet de chaque transaction"
             />
             <FeatureCard
-              icon={<CheckCircle className="h-6 w-6" style={{ color: '#1B3A6B' }} />}
+              icon={<CheckCircle className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
               title="Fiable"
               description="Système de notation, gestion des litiges, et support client disponible"
             />
             <FeatureCard
-              icon={<DollarSign className="h-6 w-6" style={{ color: '#1B3A6B' }} />}
+              icon={<DollarSign className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
               title="Économique"
               description="Tarifs compétitifs, paiement uniquement après livraison confirmée pour les voyageurs"
             />
@@ -311,18 +323,9 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="p-6 flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row gap-3">
-                <SearchField
-                  icon={<MapPin className="h-4 w-4" />}
-                  placeholder="Ville de départ"
-                />
-                <SearchField
-                  icon={<MapPin className="h-4 w-4" />}
-                  placeholder="Destination"
-                />
-                <SearchField
-                  icon={<Calendar className="h-4 w-4" />}
-                  placeholder="Date de départ"
-                />
+                <SearchField icon={<MapPin className="h-4 w-4" />} placeholder="Ville de départ" />
+                <SearchField icon={<MapPin className="h-4 w-4" />} placeholder="Destination" />
+                <SearchField icon={<Calendar className="h-4 w-4" />} placeholder="Date de départ" />
               </div>
               <Link
                 to="/trips"
@@ -345,22 +348,14 @@ export default function LandingPage() {
                 </div>
               ) : (
                 previewTrips.map((trip) => (
-                  <TripCard
-                    key={trip.id}
-                    from={trip.departure}
-                    to={trip.destination}
-                    date={formatDate(trip.date)}
-                    pricePerKg={(trip.price_per_kg / 100).toFixed(2) + ' €/kg'}
-                    available={(trip.grams_disponible / 1000).toFixed(1) + ' kg dispo'}
-                    traveler={trip.user?.full_name}
-                    onSee={() => navigate('/trips')}
-                  />
+                  <TripCard key={trip.id} trip={trip} onSee={() => navigate("/trips")} />
                 ))
               )}
             </div>
           </div>
+
           <button
-            onClick={() => navigate('/trips')}
+            onClick={() => navigate("/trips")}
             className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
           >
             Voir tous les trajets disponibles →
@@ -369,18 +364,20 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
-      <section className="py-20" style={{ background: 'linear-gradient(135deg, #0F2544 0%, #1B3A6B 100%)' }}>
+      <section
+        className="py-20"
+        style={{ background: "linear-gradient(135deg, #0F2544 0%, #1B3A6B 100%)" }}
+      >
         <div className="max-w-7xl mx-auto px-6 text-center flex flex-col items-center gap-6">
-          <h2 className="text-3xl font-bold text-white">
-            Prêt à commencer ?
-          </h2>
+          <h2 className="text-3xl font-bold text-white">Prêt à commencer ?</h2>
           <p className="text-blue-100 text-lg max-w-xl">
             Rejoignez des milliers d'utilisateurs qui font confiance à GP-Valise
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Link
               to="/register"
-              className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm" style={{ color: '#1B3A6B' }}
+              className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm"
+              style={{ color: "#1B3A6B" }}
             >
               Envoyer un colis
             </Link>
@@ -395,22 +392,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="text-white" style={{ backgroundColor: '#0F2544' }}>
+      <footer className="text-white" style={{ backgroundColor: "#0F2544" }}>
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <img src="/logo-blanc.png" alt="GP-Valise" className="h-8" />
+          <img src="/logo-blanc.png" alt="Safe Move" className="h-8" />
           <p className="text-sm text-white/70">© 2026 GP-Valise. Tous droits réservés.</p>
           <div className="flex items-center gap-3 text-sm text-white/70">
-            <Link to="/login" className="hover:text-white transition-colors duration-200">
-              Conditions
-            </Link>
+            <a href="#" className="hover:text-white transition-colors duration-200">Conditions</a>
             <span className="text-white/30">·</span>
-            <Link to="/login" className="hover:text-white transition-colors duration-200">
-              Confidentialité
-            </Link>
+            <a href="#" className="hover:text-white transition-colors duration-200">Confidentialité</a>
             <span className="text-white/30">·</span>
-            <Link to="/login" className="hover:text-white transition-colors duration-200">
-              Contact
-            </Link>
+            <a href="mailto:contact@safemove.io" className="hover:text-white transition-colors duration-200">Contact</a>
           </div>
         </div>
       </footer>

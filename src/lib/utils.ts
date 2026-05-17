@@ -11,14 +11,15 @@ export function formatAmount(amount: number, currency: string = 'EUR'): string {
   }).format(amount / 100)
 }
 
-export function formatDate(date: string): string {
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(date))
+  }).format(new Date(dateStr)) // ← dateStr, pas date
 }
 
 // ── Booking ───────────────────────────────────────────────────────────────────
