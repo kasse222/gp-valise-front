@@ -25,6 +25,7 @@ export interface PayBookingResponse {
   booking_id: number;
   amount: number;
   status: string;
+  payment_url: string | null;
 }
 
 export interface PayBookingPayload {
