@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Package } from "lucide-react";
+import { ArrowLeft, ArrowRight, Package, ChevronRight } from "lucide-react";
 
 import { Button, Card, Spinner, BookingStatusBadge } from "@/components/ui";
 import { useTrip } from "@/hooks/useTrips";
@@ -175,9 +175,10 @@ export default function TripDetailPage() {
                 (booking.kg_reserved / 1000).toFixed(1) + " kg";
               const senderEmail = booking.user?.email ?? "—";
               return (
-                <div
+                <Link
                   key={booking.id}
-                  className="flex items-center justify-between py-3 text-sm"
+                  to={`/traveler/bookings/${booking.id}`}
+                  className="flex items-center justify-between py-3 text-sm cursor-pointer hover:bg-gray-50 transition-colors -mx-4 px-4"
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900 truncate">
@@ -187,10 +188,11 @@ export default function TripDetailPage() {
                       {kgDisplay} · {formatDate(booking.created_at)}
                     </p>
                   </div>
-                  <div className="flex-shrink-0 ml-4">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                     <BookingStatusBadge status={booking.status} />
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
