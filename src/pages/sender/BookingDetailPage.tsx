@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck, Package } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck, Package, ExternalLink } from "lucide-react";
 import toast from "react-hot-toast";
 import type { AxiosError } from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -44,6 +44,8 @@ export default function BookingDetailPage() {
   const bookingId = Number(id);
   const queryClient = useQueryClient();
   const userCountry = useAuthStore((s) => s.user?.country) ?? "FR";
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
+
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">("mobile_money");
 
@@ -80,6 +82,10 @@ export default function BookingDetailPage() {
     },
   });
 
+  const scrollToPayment = () => {
+    paymentSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center">
@@ -107,7 +113,17 @@ export default function BookingDetailPage() {
   const kgDisplay = (booking.kg_reserved / 1000).toFixed(1) + " kg";
   const tripDate = booking.trip?.date ? booking.trip.date.split("-").reverse().join("/") : null;
 
-  // Désactiver le bouton si Mobile Money et pas de numéro
+  const totalAmount = booking.items.reduce((sum, item) => sum + item.price, 0);
+  const isExpired = booking.status === "expiree";
+  const isPendingPayment = booking.status === "en_paiement";
+  const isConfirmed = booking.status === "confirmee" || booking.status === "livree" || booking.status === "terminee";
+
+  // Trouver les montants payés, remboursés
+  const chargeCompleted = transactions.find(tx => tx.type?.code === "CHARGE" && tx.status?.code === "COMPLETED");
+  const refundCompleted = transactions.find(tx => tx.type?.code === "REFUND" && tx.status?.code === "COMPLETED");
+  const amountPaid = chargeCompleted?.amount ?? 0;
+  const amountRefunded = refundCompleted?.amount ?? 0;
+
   const isPhoneRequired = paymentMethod === "mobile_money";
   const isPayDisabled = payMutation.isPending || (isPhoneRequired && !phone.trim());
 
@@ -130,6 +146,16 @@ export default function BookingDetailPage() {
         </div>
         <BookingStatusBadge status={booking.status} />
       </div>
+
+      {/* Bannière pour réservation expirée */}
+      {isExpired && (
+        <div className="mb-4 p-3 bg-amber-50 rounded-lg flex items-start gap-2 text-sm text-amber-700">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            Le délai de paiement a expiré. Vous pouvez créer une nouvelle réservation.
+          </span>
+        </div>
+      )}
 
       {/* Trajet */}
       <Card className="mb-4">
@@ -163,6 +189,14 @@ export default function BookingDetailPage() {
             </div>
           )}
         </dl>
+        <div className="mt-4">
+          <Link
+            to={`/trips/${booking.trip_id}`}
+            className="inline-flex items-center gap-1 text-xs text-teal-600 hover:underline"
+          >
+            Voir le détail du trajet <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
       </Card>
 
       {/* Items réservés */}
@@ -187,77 +221,102 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {/* Paiement – uniquement si le statut le permet */}
-      {booking.status === "en_paiement" && (
-        <Card className="mb-4 border-amber-200 bg-amber-50">
-          <h2 className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-3">
-            Paiement
+      {/* Récapitulatif financier (si réservation confirmée ou terminée) */}
+      {isConfirmed && amountPaid > 0 && (
+        <Card className="mb-4">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Récapitulatif financier
           </h2>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-700">Montant total</span>
-            <span className="text-lg font-bold text-gray-900">
-              {formatAmount(booking.items.reduce((sum, item) => sum + item.price, 0))}
-            </span>
+          <div className="flex justify-between text-sm py-1">
+            <span className="text-gray-600">Montant payé</span>
+            <span className="font-medium text-gray-900">{formatAmount(amountPaid, "EUR")}</span>
           </div>
-
-          {booking.payment_expires_at && (
-            <div className="flex items-center gap-1.5 text-sm text-amber-600 mb-4">
-              <Clock className="w-4 h-4" />
-              <span>
-                Expire dans{" "}
-                <span className="font-semibold">{expiresInMinutes(booking.payment_expires_at)}</span>
-              </span>
+          {amountRefunded > 0 && (
+            <div className="flex justify-between text-sm py-1">
+              <span className="text-gray-600">Remboursé</span>
+              <span className="font-medium text-red-600">-{formatAmount(amountRefunded, "EUR")}</span>
             </div>
           )}
-
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <button
-              onClick={() => setPaymentMethod("mobile_money")}
-              className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
-                paymentMethod === "mobile_money"
-                  ? "border-teal-600 bg-teal-600 text-white"
-                  : "border-gray-300 text-gray-700 hover:border-teal-400"
-              }`}
-            >
-              📱 Mobile Money
-            </button>
-            <button
-              onClick={() => setPaymentMethod("card")}
-              className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
-                paymentMethod === "card"
-                  ? "border-teal-600 bg-teal-600 text-white"
-                  : "border-gray-300 text-gray-700 hover:border-teal-400"
-              }`}
-            >
-              💳 Carte bancaire
-            </button>
-          </div>
-
-          {paymentMethod === "mobile_money" && (
-            <input
-              type="tel"
-              placeholder="+221 77 000 00 00"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
+          {amountRefunded === 0 && !isExpired && (
+            <div className="flex justify-between text-sm py-1 border-t border-gray-100 mt-2 pt-2">
+              <span className="font-semibold text-gray-900">Total net</span>
+              <span className="font-bold text-gray-900">{formatAmount(amountPaid, "EUR")}</span>
+            </div>
           )}
-
-          <Button
-            variant="primary"
-            className="w-full"
-            loading={payMutation.isPending}
-            disabled={isPayDisabled}
-            onClick={() => payMutation.mutate()}
-          >
-            Payer maintenant
-          </Button>
-
-          <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-3">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Paiement sécurisé via Safe Move
-          </p>
         </Card>
+      )}
+
+      {/* Paiement – uniquement si le statut le permet */}
+      {isPendingPayment && (
+        <div ref={paymentSectionRef}>
+          <Card className="mb-4 border-amber-200 bg-amber-50">
+            <h2 className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-3">
+              Paiement
+            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-gray-700">Montant total</span>
+              <span className="text-lg font-bold text-gray-900">{formatAmount(totalAmount, "EUR")}</span>
+            </div>
+
+            {booking.payment_expires_at && (
+              <div className="flex items-center gap-1.5 text-sm text-amber-600 mb-4">
+                <Clock className="w-4 h-4" />
+                <span>
+                  Expire dans{" "}
+                  <span className="font-semibold">{expiresInMinutes(booking.payment_expires_at)}</span>
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => setPaymentMethod("mobile_money")}
+                className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
+                  paymentMethod === "mobile_money"
+                    ? "border-teal-600 bg-teal-600 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-teal-400"
+                }`}
+              >
+                📱 Mobile Money
+              </button>
+              <button
+                onClick={() => setPaymentMethod("card")}
+                className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
+                  paymentMethod === "card"
+                    ? "border-teal-600 bg-teal-600 text-white"
+                    : "border-gray-300 text-gray-700 hover:border-teal-400"
+                }`}
+              >
+                💳 Carte bancaire
+              </button>
+            </div>
+
+            {paymentMethod === "mobile_money" && (
+              <input
+                type="tel"
+                placeholder="+221 77 000 00 00"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            )}
+
+            <Button
+              variant="primary"
+              className="w-full"
+              loading={payMutation.isPending}
+              disabled={isPayDisabled}
+              onClick={() => payMutation.mutate()}
+            >
+              Payer maintenant
+            </Button>
+
+            <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-3">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Paiement sécurisé via Safe Move
+            </p>
+          </Card>
+        </div>
       )}
 
       {/* Transactions */}
@@ -274,13 +333,8 @@ export default function BookingDetailPage() {
           <EmptyState
             title="Aucune transaction"
             description="Le paiement n'a pas encore été initié ou est en cours."
-            actionLabel={booking.status === "en_paiement" ? "Payer maintenant" : undefined}
-            onAction={() => {
-              if (booking.status === "en_paiement") {
-                // scroll to payment section or trigger pay
-                document.getElementById("payment-section")?.scrollIntoView({ behavior: "smooth" });
-              }
-            }}
+            actionLabel={isPendingPayment ? "Payer maintenant" : undefined}
+            onAction={scrollToPayment}
           />
         ) : (
           <div className="divide-y divide-gray-100">

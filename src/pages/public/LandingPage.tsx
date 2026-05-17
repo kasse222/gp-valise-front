@@ -18,6 +18,15 @@ import {
   X,
 } from "lucide-react";
 
+// ─── Brand tokens ─────────────────────────────────────────────────────────────
+
+const BRAND = {
+  primary: "#1B3A6B",
+  primaryHover: "#2B6CB0",
+  primaryDark: "#0F2544",
+  primaryLight: "#EBF4FF",
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Step({ number, text }: { number: number; text: string }) {
@@ -25,7 +34,7 @@ function Step({ number, text }: { number: number; text: string }) {
     <div className="flex items-start gap-3">
       <span
         className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center"
-        style={{ backgroundColor: "#EBF4FF", color: "#1B3A6B" }}
+        style={{ backgroundColor: BRAND.primaryLight, color: BRAND.primary }}
       >
         {number}
       </span>
@@ -47,7 +56,7 @@ function FeatureCard({
     <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
       <div
         className="w-12 h-12 rounded-xl flex items-center justify-center"
-        style={{ backgroundColor: "#EBF4FF" }}
+        style={{ backgroundColor: BRAND.primaryLight }}
       >
         {icon}
       </div>
@@ -88,7 +97,7 @@ function TripCard({ trip, onSee }: { trip: Trip; onSee: () => void }) {
           {formatDate(trip.date ?? "")}
         </span>
         <div className="flex items-center gap-3">
-          <span className="font-bold" style={{ color: "#1B3A6B" }}>
+          <span className="font-bold" style={{ color: BRAND.primary }}>
             {(trip.price_per_kg / 100).toFixed(2)} €/kg
           </span>
           <span className="text-gray-300">·</span>
@@ -136,13 +145,13 @@ export default function LandingPage() {
   ];
 
   return (
-    // Application de la police personnalisée via la classe "font-sans" (définie dans tailwind.config.js)
     <div className="min-h-screen font-sans">
+
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
           <Link to="/" className="shrink-0">
-            <img src="/logo-nav-hori.png" alt="Safe Move" style={{ height: "52px" }} />
+            <img src="/logo-nav-hori.png" alt="Safe Move" style={{ height: "64px" }} />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -153,7 +162,7 @@ export default function LandingPage() {
                 className={`text-sm transition-colors duration-200 ${
                   link.href === "/" ? "font-medium" : "text-gray-600 hover:text-[#1B3A6B]"
                 }`}
-                style={link.href === "/" ? { color: "#1B3A6B" } : undefined}
+                style={link.href === "/" ? { color: BRAND.primary } : undefined}
               >
                 {link.label}
               </a>
@@ -204,13 +213,22 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ── Hero avec image de fond (valise aéroport) ───────────────────── */}
+      {/* ── Hero — image Unsplash libre + overlay brand ─────────────────── */}
       <section
-        className="relative pt-20 min-h-[75vh] flex items-center justify-center bg-cover bg-center"
-        style={{ backgroundImage: "url('/public/valise-bleue.jpg')" }}
+        className="relative pt-24 min-h-[75vh] flex items-center justify-center bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=2000&q=80')",
+        }}
       >
-        {/* Overlay sombre pour lisibilité du texte */}
-        <div className="absolute inset-0 bg-black/50"></div>
+         <div
+           className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(15,37,68,0.96) 0%, rgba(27,58,107,0.92) 50%, rgba(43,108,176,0.88) 100%)",
+            }}
+          />
+
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-8">
           <div className="flex flex-col gap-4 max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
@@ -225,7 +243,7 @@ export default function LandingPage() {
             <Link
               to="/trips"
               className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm"
-              style={{ color: "#1B3A6B" }}
+              style={{ color: BRAND.primary }}
             >
               Rechercher un trajet
             </Link>
@@ -250,9 +268,9 @@ export default function LandingPage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: "#EBF4FF" }}
+                  style={{ backgroundColor: BRAND.primaryLight }}
                 >
-                  <Package className="h-5 w-5" style={{ color: "#1B3A6B" }} />
+                  <Package className="h-5 w-5" style={{ color: BRAND.primary }} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">Pour les expéditeurs</h3>
               </div>
@@ -267,9 +285,9 @@ export default function LandingPage() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: "#EBF4FF" }}
+                  style={{ backgroundColor: BRAND.primaryLight }}
                 >
-                  <Plane className="h-5 w-5" style={{ color: "#1B3A6B" }} />
+                  <Plane className="h-5 w-5" style={{ color: BRAND.primary }} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">Pour les voyageurs</h3>
               </div>
@@ -292,17 +310,17 @@ export default function LandingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
-              icon={<Shield className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
+              icon={<Shield className="h-6 w-6" style={{ color: BRAND.primary }} />}
               title="Sécurisé"
               description="KYC, paiement sécurisé avec système escrow 48h, et suivi complet de chaque transaction"
             />
             <FeatureCard
-              icon={<CheckCircle className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
+              icon={<CheckCircle className="h-6 w-6" style={{ color: BRAND.primary }} />}
               title="Fiable"
               description="Système de notation, gestion des litiges, et support client disponible"
             />
             <FeatureCard
-              icon={<DollarSign className="h-6 w-6" style={{ color: "#1B3A6B" }} />}
+              icon={<DollarSign className="h-6 w-6" style={{ color: BRAND.primary }} />}
               title="Économique"
               description="Tarifs compétitifs, paiement uniquement après livraison confirmée pour les voyageurs"
             />
@@ -379,7 +397,7 @@ export default function LandingPage() {
             <Link
               to="/register"
               className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-3 rounded-full transition-colors duration-200 text-sm"
-              style={{ color: "#1B3A6B" }}
+              style={{ color: BRAND.primary }}
             >
               Envoyer un colis
             </Link>
@@ -394,7 +412,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="text-white" style={{ backgroundColor: "#0F2544" }}>
+      <footer className="text-white" style={{ backgroundColor: BRAND.primaryDark }}>
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <img src="/logo-blanc.png" alt="Safe Move" className="h-8" />
           <p className="text-sm text-white/70">© 2026 GP-Valise. Tous droits réservés.</p>
