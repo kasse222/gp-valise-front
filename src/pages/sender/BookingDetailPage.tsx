@@ -10,6 +10,7 @@ import { useBooking } from "@/hooks/useBooking";
 import { useTransactions } from "@/hooks/useTransactions";
 import { payBooking } from "@/api/bookings";
 import { formatAmount, formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 function expiresInMinutes(isoDate: string): string {
   const diff = Math.floor((new Date(isoDate).getTime() - Date.now()) / 60_000);
@@ -24,6 +25,7 @@ export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bookingId = Number(id);
   const queryClient = useQueryClient();
+  const userCountry = useAuthStore((s) => s.user?.country) ?? "FR";
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">("mobile_money");
 
@@ -34,7 +36,7 @@ export default function BookingDetailPage() {
     mutationFn: () => payBooking(bookingId, {
       method: paymentMethod,
       phone: paymentMethod === "mobile_money" ? (phone || undefined) : undefined,
-      country: "SN",
+      country: userCountry,
     }),
     onSuccess: (data) => {
       if (data.payment_url) {

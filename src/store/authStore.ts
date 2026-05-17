@@ -34,6 +34,8 @@ export interface AuthUser {
   last_name: string
   email: string
   role: UserRole
+  phone: string | null
+  country: string | null
 }
 
 interface AuthStore {
