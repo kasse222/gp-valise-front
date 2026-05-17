@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, ChevronRight, Scale } from "lucide-react";
+import { AlertTriangle, ChevronRight, Scale, FileText } from "lucide-react";
 
 import { Card, Spinner, Button, BookingStatusBadge } from "@/components/ui";
 import { useBookings } from "@/hooks/useBookings";
 import { formatDate } from "@/lib/utils";
 import type { Booking } from "@/types";
 
+// ─── Helper ─────────────────────────────────────────────────────────────
 function getDisputedAt(booking: Booking): string {
   const entry = booking.status_history.find(
     (h) => h.new_status === "en_litige"
@@ -13,6 +14,7 @@ function getDisputedAt(booking: Booking): string {
   return entry ? entry.changed_at : booking.created_at;
 }
 
+// ─── Composant pour une ligne de litige ─────────────────────────────────
 function DisputeRow({ booking }: { booking: Booking }) {
   const departure = booking.trip?.departure ?? "—";
   const destination = booking.trip?.destination ?? "—";
@@ -24,8 +26,8 @@ function DisputeRow({ booking }: { booking: Booking }) {
       className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
     >
       <div className="flex items-center gap-4 min-w-0">
-        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
-          <AlertTriangle className="w-4 h-4 text-red-500" />
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+          <AlertTriangle className="w-4 h-4 text-amber-600" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
@@ -44,6 +46,7 @@ function DisputeRow({ booking }: { booking: Booking }) {
   );
 }
 
+// ─── Composant principal ────────────────────────────────────────────────
 export default function DisputesPage() {
   const { data, isLoading, isError, refetch } = useBookings();
 
@@ -72,12 +75,21 @@ export default function DisputesPage() {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Mes litiges</h1>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Scale className="w-12 h-12 text-gray-300 mb-4" />
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-gray-50 rounded-xl">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Scale className="w-8 h-8 text-gray-400" />
+          </div>
           <p className="text-gray-500 font-medium">Aucun litige en cours</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Vos litiges ouverts apparaîtront ici.
+          <p className="text-sm text-gray-400 mt-1 max-w-md">
+            Si un problème survient avec une réservation, vous pourrez ouvrir un litige depuis la page de la réservation.
           </p>
+          <Link
+            to="/sender/bookings"
+            className="mt-6 inline-flex items-center gap-2 text-sm text-teal-600 hover:underline"
+          >
+            <FileText className="w-4 h-4" />
+            Voir mes réservations
+          </Link>
         </div>
       </div>
     );
@@ -87,7 +99,9 @@ export default function DisputesPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mes litiges</h1>
-        <span className="text-sm text-gray-500">{disputes.length} en cours</span>
+        <span className="text-sm text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+          {disputes.length} en cours
+        </span>
       </div>
       <Card className="p-0 overflow-hidden">
         {disputes.map((booking) => (

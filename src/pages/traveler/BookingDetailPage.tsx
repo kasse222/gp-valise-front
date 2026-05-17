@@ -1,11 +1,11 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Package } from "lucide-react";
+import { ArrowLeft, ArrowRight, Package, AlertCircle, ExternalLink } from "lucide-react";
 
 import { Button, Card, Spinner, BookingStatusBadge } from "@/components/ui";
 import { useBooking } from "@/hooks/useBooking";
 import { formatAmount, formatDate } from "@/lib/utils";
 
-// ─── Empty State Component (réutilisable) ─────────────────────────────
+// ─── Empty State Component ─────────────────────────────────────────────
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="text-center py-10">
@@ -47,8 +47,12 @@ export default function TravelerBookingDetailPage() {
 
   const kgDisplay = (booking.kg_reserved / 1000).toFixed(1) + " kg";
 
+  const totalAmount = booking.items.reduce((sum, item) => sum + item.price, 0);
+  const isExpired = booking.status === "expiree";
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      {/* Lien retour au trajet */}
       <Link
         to={`/traveler/trips/${booking.trip_id}`}
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6"
@@ -57,6 +61,7 @@ export default function TravelerBookingDetailPage() {
         Retour au trajet
       </Link>
 
+      {/* En-tête */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -67,12 +72,37 @@ export default function TravelerBookingDetailPage() {
         <BookingStatusBadge status={booking.status} />
       </div>
 
+      {/* Bannière d'information pour expirée */}
+      {isExpired && (
+        <div className="mb-4 p-3 bg-amber-50 rounded-lg flex items-start gap-2 text-sm text-amber-700">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            Cette réservation n'a pas été payée à temps. Aucune action n'est requise de votre côté.
+          </span>
+        </div>
+      )}
+
       {/* Expéditeur */}
       <Card className="mb-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
           Expéditeur
         </h2>
-        <p className="text-sm text-gray-900">{booking.user?.email ?? "—"}</p>
+        {booking.user?.email ? (
+          <p className="text-sm text-gray-900">{booking.user.email}</p>
+        ) : (
+          <p className="text-sm text-gray-500 italic">
+            Informations non disponibles (réservation expirée ou annulée)
+          </p>
+        )}
+        {/* Lien vers le trajet (rappel visuel) */}
+        <div className="mt-3">
+          <Link
+            to={`/traveler/trips/${booking.trip_id}`}
+            className="inline-flex items-center gap-1 text-xs text-teal-600 hover:underline"
+          >
+            Voir le détail du trajet <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
       </Card>
 
       {/* Trajet */}
@@ -103,6 +133,21 @@ export default function TravelerBookingDetailPage() {
             </div>
           )}
         </dl>
+      </Card>
+
+      {/* Gains potentiels (même pour expirée, à titre informatif) */}
+      <Card className="mb-4">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          Gains potentiels
+        </h2>
+        <p className="text-sm text-gray-500 mb-1">
+          {isExpired
+            ? "Montant qui aurait été gagné si la réservation avait été confirmée :"
+            : "Montant à percevoir après livraison confirmée :"}
+        </p>
+        <p className="text-xl font-bold text-gray-900">
+          {formatAmount(totalAmount, "EUR")}
+        </p>
       </Card>
 
       {/* Items réservés */}
