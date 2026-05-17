@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShieldCheck, Package } from "lucide-react";
 import toast from "react-hot-toast";
 import type { AxiosError } from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { payBooking } from "@/api/bookings";
 import { formatAmount, formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 
+// ─── Helper ─────────────────────────────────────────────────────────────
 function expiresInMinutes(isoDate: string): string {
   const diff = Math.floor((new Date(isoDate).getTime() - Date.now()) / 60_000);
   if (diff <= 0) return "expiré";
@@ -21,6 +22,23 @@ function expiresInMinutes(isoDate: string): string {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
+// ─── Empty State Component ──────────────────────────────────────────────
+function EmptyState({ title, description, actionLabel, onAction }: any) {
+  return (
+    <div className="text-center py-10">
+      <Package className="mx-auto h-12 w-12 text-gray-300" />
+      <h3 className="mt-2 text-sm font-medium text-gray-900">{title}</h3>
+      <p className="mt-1 text-sm text-gray-500">{description}</p>
+      {actionLabel && (
+        <Button onClick={onAction} variant="secondary" className="mt-4">
+          {actionLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bookingId = Number(id);
@@ -33,11 +51,21 @@ export default function BookingDetailPage() {
   const { data: allTransactions, isError: isTxError, error: txError } = useTransactions();
 
   const payMutation = useMutation({
-    mutationFn: () => payBooking(bookingId, {
-      method: paymentMethod,
-      phone: paymentMethod === "mobile_money" ? (phone || undefined) : undefined,
-      country: userCountry,
-    }),
+    mutationFn: async () => {
+      const toastId = toast.loading("Préparation du paiement...");
+      try {
+        const result = await payBooking(bookingId, {
+          method: paymentMethod,
+          phone: paymentMethod === "mobile_money" ? phone || undefined : undefined,
+          country: userCountry,
+        });
+        toast.dismiss(toastId);
+        return result;
+      } catch (err) {
+        toast.dismiss(toastId);
+        throw err;
+      }
+    },
     onSuccess: (data) => {
       if (data.payment_url) {
         window.location.href = data.payment_url;
@@ -74,18 +102,14 @@ export default function BookingDetailPage() {
   const transactions = (allTransactions ?? []).filter(
     (tx) => tx.booking_id === bookingId
   );
-  const is403 =
-    isTxError && (txError as AxiosError)?.response?.status === 403;
-
-  const canOpenDispute =
-    booking.status === "confirmee" || booking.status === "livree";
-
+  const is403 = isTxError && (txError as AxiosError)?.response?.status === 403;
+  const canOpenDispute = booking.status === "confirmee" || booking.status === "livree";
   const kgDisplay = (booking.kg_reserved / 1000).toFixed(1) + " kg";
+  const tripDate = booking.trip?.date ? booking.trip.date.split("-").reverse().join("/") : null;
 
-  const tripDate =
-    booking.trip?.date
-      ? booking.trip.date.split("-").reverse().join("/")
-      : null;
+  // Désactiver le bouton si Mobile Money et pas de numéro
+  const isPhoneRequired = paymentMethod === "mobile_money";
+  const isPayDisabled = payMutation.isPending || (isPhoneRequired && !phone.trim());
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -102,21 +126,17 @@ export default function BookingDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Réservation #{booking.id}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {formatDate(booking.created_at)}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{formatDate(booking.created_at)}</p>
         </div>
         <BookingStatusBadge status={booking.status} />
       </div>
 
       {/* Trajet */}
       <Card className="mb-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Trajet
-        </h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Trajet</h2>
         <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
           <span>{booking.trip?.departure ?? "—"}</span>
-          <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          <ArrowRight className="w-5 h-5 text-gray-400" />
           <span>{booking.trip?.destination ?? "—"}</span>
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -133,9 +153,7 @@ export default function BookingDetailPage() {
           {booking.user && (
             <div>
               <dt className="text-gray-500">Voyageur</dt>
-              <dd className="font-medium text-gray-900 mt-0.5 truncate">
-                {booking.user.email}
-              </dd>
+              <dd className="font-medium text-gray-900 mt-0.5 truncate">{booking.user.email}</dd>
             </div>
           )}
           {booking.comment && (
@@ -155,51 +173,39 @@ export default function BookingDetailPage() {
           </h2>
           <div className="divide-y divide-gray-100">
             {booking.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-2.5 text-sm"
-              >
+              <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
                 <div className="text-gray-700">
                   <span className="font-medium">
                     {item.luggage?.tracking_id ?? `Item #${item.id}`}
                   </span>
-                  <span className="text-gray-400 ml-2">
-                    · {(item.kg_reserved / 1000).toFixed(1)} kg
-                  </span>
+                  <span className="text-gray-400 ml-2">· {(item.kg_reserved / 1000).toFixed(1)} kg</span>
                 </div>
-                <span className="font-medium text-gray-900">
-                  {formatAmount(item.price, "EUR")}
-                </span>
+                <span className="font-medium text-gray-900">{formatAmount(item.price, "EUR")}</span>
               </div>
             ))}
           </div>
         </Card>
       )}
 
-      {/* Paiement */}
+      {/* Paiement – uniquement si le statut le permet */}
       {booking.status === "en_paiement" && (
-        <Card className="mb-4 border-blue-200 bg-blue-50">
-          <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-3">
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <h2 className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-3">
             Paiement
           </h2>
-
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-gray-700">Montant total</span>
             <span className="text-lg font-bold text-gray-900">
-              {formatAmount(
-                booking.items.reduce((sum, item) => sum + item.price, 0)
-              )}
+              {formatAmount(booking.items.reduce((sum, item) => sum + item.price, 0))}
             </span>
           </div>
 
           {booking.payment_expires_at && (
             <div className="flex items-center gap-1.5 text-sm text-amber-600 mb-4">
-              <Clock className="w-4 h-4 flex-shrink-0" />
+              <Clock className="w-4 h-4" />
               <span>
                 Expire dans{" "}
-                <span className="font-semibold">
-                  {expiresInMinutes(booking.payment_expires_at)}
-                </span>
+                <span className="font-semibold">{expiresInMinutes(booking.payment_expires_at)}</span>
               </span>
             </div>
           )}
@@ -209,8 +215,8 @@ export default function BookingDetailPage() {
               onClick={() => setPaymentMethod("mobile_money")}
               className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
                 paymentMethod === "mobile_money"
-                  ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-gray-300 text-gray-700 hover:border-blue-400"
+                  ? "border-teal-600 bg-teal-600 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-teal-400"
               }`}
             >
               📱 Mobile Money
@@ -219,8 +225,8 @@ export default function BookingDetailPage() {
               onClick={() => setPaymentMethod("card")}
               className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
                 paymentMethod === "card"
-                  ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-gray-300 text-gray-700 hover:border-blue-400"
+                  ? "border-teal-600 bg-teal-600 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-teal-400"
               }`}
             >
               💳 Carte bancaire
@@ -233,7 +239,7 @@ export default function BookingDetailPage() {
               placeholder="+221 77 000 00 00"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           )}
 
@@ -241,6 +247,7 @@ export default function BookingDetailPage() {
             variant="primary"
             className="w-full"
             loading={payMutation.isPending}
+            disabled={isPayDisabled}
             onClick={() => payMutation.mutate()}
           >
             Payer maintenant
@@ -260,18 +267,25 @@ export default function BookingDetailPage() {
         </h2>
         {is403 ? (
           <div className="flex items-center gap-2 text-sm text-amber-600 py-1">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4" />
             <span>Vérification email requise pour accéder aux transactions.</span>
           </div>
         ) : transactions.length === 0 ? (
-          <p className="text-sm text-gray-400">Aucune transaction pour cette réservation.</p>
+          <EmptyState
+            title="Aucune transaction"
+            description="Le paiement n'a pas encore été initié ou est en cours."
+            actionLabel={booking.status === "en_paiement" ? "Payer maintenant" : undefined}
+            onAction={() => {
+              if (booking.status === "en_paiement") {
+                // scroll to payment section or trigger pay
+                document.getElementById("payment-section")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+          />
         ) : (
           <div className="divide-y divide-gray-100">
             {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between py-2.5 text-sm"
-              >
+              <div key={tx.id} className="flex items-center justify-between py-2.5 text-sm">
                 <div>
                   <p className="font-medium text-gray-900">{tx.type.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{tx.status.label}</p>
@@ -294,7 +308,7 @@ export default function BookingDetailPage() {
           <ol className="space-y-3">
             {booking.status_history.map((entry) => (
               <li key={entry.id} className="flex items-start gap-3 text-sm">
-                <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-teal-400 flex-shrink-0" />
                 <div>
                   <p className="text-gray-900">
                     {entry.old_label ? (
@@ -305,12 +319,8 @@ export default function BookingDetailPage() {
                     ) : null}
                     <span className="font-medium">{entry.new_label}</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {formatDate(entry.changed_at)}
-                  </p>
-                  {entry.reason && (
-                    <p className="text-xs text-gray-500 mt-0.5">{entry.reason}</p>
-                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(entry.changed_at)}</p>
+                  {entry.reason && <p className="text-xs text-gray-500 mt-0.5">{entry.reason}</p>}
                 </div>
               </li>
             ))}
@@ -321,12 +331,7 @@ export default function BookingDetailPage() {
       {/* Action litige */}
       {canOpenDispute && (
         <div className="flex justify-end">
-          <Button
-            variant="danger"
-            onClick={() =>
-              toast("Disponible en Phase 7", { icon: "ℹ️" })
-            }
-          >
+          <Button variant="danger" onClick={() => toast("Disponible en Phase 7", { icon: "ℹ️" })}>
             Ouvrir un litige
           </Button>
         </div>

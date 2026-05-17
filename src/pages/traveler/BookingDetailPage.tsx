@@ -1,9 +1,20 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Package } from "lucide-react";
 
 import { Button, Card, Spinner, BookingStatusBadge } from "@/components/ui";
 import { useBooking } from "@/hooks/useBooking";
 import { formatAmount, formatDate } from "@/lib/utils";
+
+// ─── Empty State Component (réutilisable) ─────────────────────────────
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="text-center py-10">
+      <Package className="mx-auto h-12 w-12 text-gray-300" />
+      <h3 className="mt-2 text-sm font-medium text-gray-900">{title}</h3>
+      <p className="mt-1 text-sm text-gray-500">{description}</p>
+    </div>
+  );
+}
 
 export default function TravelerBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,9 +62,7 @@ export default function TravelerBookingDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Réservation #{booking.id}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {formatDate(booking.created_at)}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{formatDate(booking.created_at)}</p>
         </div>
         <BookingStatusBadge status={booking.status} />
       </div>
@@ -63,9 +72,7 @@ export default function TravelerBookingDetailPage() {
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
           Expéditeur
         </h2>
-        <p className="text-sm text-gray-900">
-          {booking.user?.email ?? "—"}
-        </p>
+        <p className="text-sm text-gray-900">{booking.user?.email ?? "—"}</p>
       </Card>
 
       {/* Trajet */}
@@ -75,7 +82,7 @@ export default function TravelerBookingDetailPage() {
         </h2>
         <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
           <span>{booking.trip?.departure ?? "—"}</span>
-          <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          <ArrowRight className="w-5 h-5 text-gray-400" />
           <span>{booking.trip?.destination ?? "—"}</span>
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -98,12 +105,17 @@ export default function TravelerBookingDetailPage() {
         </dl>
       </Card>
 
-      {/* Items */}
-      {booking.items.length > 0 && (
-        <Card className="mb-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Items réservés
-          </h2>
+      {/* Items réservés */}
+      <Card className="mb-4">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          Items réservés
+        </h2>
+        {booking.items.length === 0 ? (
+          <EmptyState
+            title="Aucun item"
+            description="Cette réservation ne contient aucun bagage."
+          />
+        ) : (
           <div className="divide-y divide-gray-100">
             {booking.items.map((item) => (
               <div
@@ -124,19 +136,24 @@ export default function TravelerBookingDetailPage() {
               </div>
             ))}
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* Historique des statuts */}
-      {booking.status_history.length > 0 && (
-        <Card>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Historique des statuts
-          </h2>
+      <Card>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          Historique des statuts
+        </h2>
+        {booking.status_history.length === 0 ? (
+          <EmptyState
+            title="Aucun historique"
+            description="Aucun changement de statut enregistré."
+          />
+        ) : (
           <ol className="space-y-3">
             {booking.status_history.map((entry) => (
               <li key={entry.id} className="flex items-start gap-3 text-sm">
-                <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-teal-400 flex-shrink-0" />
                 <div>
                   <p className="text-gray-900">
                     {entry.old_label ? (
@@ -157,8 +174,8 @@ export default function TravelerBookingDetailPage() {
               </li>
             ))}
           </ol>
-        </Card>
-      )}
+        )}
+      </Card>
     </div>
   );
 }

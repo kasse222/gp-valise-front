@@ -10,7 +10,7 @@ import { createLuggage } from "@/api/luggages";
 import type { Trip } from "@/types";
 import { useAuthStore, isSender, isTraveler } from "@/store/authStore";
 import { formatDate, formatAmount, tripStatusColor } from "@/lib/utils";
-import { Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Spinner, EmptyState } from "@/components/ui";
 
 // ── Booking modal ─────────────────────────────────────────────────────────────
 
@@ -360,14 +360,11 @@ export default function TripsPublicPage() {
 
         {/* Empty */}
         {!isLoading && !isError && trips?.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-gray-500 font-medium">
-              Aucun trajet disponible pour le moment.
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              Revenez bientôt, de nouveaux trajets sont ajoutés régulièrement.
-            </p>
-          </div>
+          <EmptyState
+            icon={Plane}
+            title="Aucun trajet disponible"
+            description="Aucun voyageur ne propose de trajet pour le moment. Reviens bientôt !"
+          />
         )}
 
         {/* Grid */}
