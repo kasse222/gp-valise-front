@@ -3,12 +3,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'react-hot-toast'
 
+
 import LandingPage     from '@/pages/public/LandingPage'
 import TripsPublicPage from '@/pages/public/TripsPublicPage'
 import LoginPage       from '@/pages/auth/LoginPage'
 import RegisterPage    from '@/pages/auth/RegisterPage'
 import SenderDashboard from '@/pages/sender/DashboardPage'
 import TravelerDashboard from '@/pages/traveler/DashboardPage'
+
+import PaymentSuccessPage from '@/pages/payment/PaymentSuccessPage'
+import PaymentCancelPage  from '@/pages/payment/PaymentCancelPage'
 
 import { useAuthStore, isSender } from '@/store/authStore'
 
@@ -60,6 +64,10 @@ export default function App() {
           <Route path="/traveler/*" element={
             <PrivateRoute><TravelerDashboard /></PrivateRoute>
           } />
+
+          {/* Payment callbacks — public, sans token */}
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel"  element={<PaymentCancelPage />} />
 
           {/* Default */}
           <Route path="*" element={<Navigate to="/login" replace />} />
