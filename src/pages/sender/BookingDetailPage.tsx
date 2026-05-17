@@ -25,17 +25,22 @@ export default function BookingDetailPage() {
   const bookingId = Number(id);
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">("mobile_money");
 
   const { data: booking, isLoading, isError, refetch } = useBooking(bookingId);
   const { data: allTransactions, isError: isTxError, error: txError } = useTransactions();
 
   const payMutation = useMutation({
     mutationFn: () => payBooking(bookingId, {
-      method: "mobile_money",
-      phone: phone || undefined,
+      method: paymentMethod,
+      phone: paymentMethod === "mobile_money" ? (phone || undefined) : undefined,
       country: "SN",
     }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+        return;
+      }
       toast.success("Paiement effectué !");
       queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
     },
@@ -197,13 +202,38 @@ export default function BookingDetailPage() {
             </div>
           )}
 
-          <input
-            type="tel"
-            placeholder="+221 77 000 00 00"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button
+              onClick={() => setPaymentMethod("mobile_money")}
+              className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
+                paymentMethod === "mobile_money"
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-blue-400"
+              }`}
+            >
+              📱 Mobile Money
+            </button>
+            <button
+              onClick={() => setPaymentMethod("card")}
+              className={`py-2 px-3 rounded-lg border text-sm font-medium transition ${
+                paymentMethod === "card"
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-gray-300 text-gray-700 hover:border-blue-400"
+              }`}
+            >
+              💳 Carte bancaire
+            </button>
+          </div>
+
+          {paymentMethod === "mobile_money" && (
+            <input
+              type="tel"
+              placeholder="+221 77 000 00 00"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          )}
 
           <Button
             variant="primary"
@@ -216,7 +246,7 @@ export default function BookingDetailPage() {
 
           <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-3">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Paiement sécurisé — simulé (FakeProvider)
+            Paiement sécurisé via Safe Move
           </p>
         </Card>
       )}
