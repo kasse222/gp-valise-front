@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plane, ChevronRight, Filter } from "lucide-react";
 
-import { Card, Spinner, Button } from "@/components/ui";
+import { Card, Spinner, Button, EmptyState } from "@/components/ui";
 import { useTrips } from "@/hooks/useTrips";
 import {
   cn,
@@ -103,13 +103,11 @@ export default function TripsPage() {
             Proposer un trajet
           </Button>
         </div>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Plane className="w-12 h-12 text-gray-300 mb-4" />
-          <p className="text-gray-500 font-medium">Aucun trajet pour le moment</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Vos trajets publiés apparaîtront ici.
-          </p>
-        </div>
+        <EmptyState
+          icon={Plane}
+          title="Aucun trajet créé"
+          description="Crée ton premier trajet et commence à transporter des bagages."
+        />
       </div>
     );
   }

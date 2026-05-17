@@ -136,8 +136,8 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: "system-ui, sans-serif" }}>
-
+    // Application de la police personnalisée via la classe "font-sans" (définie dans tailwind.config.js)
+    <div className="min-h-screen font-sans">
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -204,12 +204,14 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      {/* ── Hero avec image de fond (valise aéroport) ───────────────────── */}
       <section
-        className="pt-20 min-h-[75vh] flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #0F2544 0%, #1B3A6B 50%, #2B6CB0 100%)" }}
+        className="relative pt-20 min-h-[75vh] flex items-center justify-center bg-cover bg-center"
+        style={{ backgroundImage: "url('/public/valise-bleue.jpg')" }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-8">
+        {/* Overlay sombre pour lisibilité du texte */}
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-8">
           <div className="flex flex-col gap-4 max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
               Transportez vos bagages en toute confiance

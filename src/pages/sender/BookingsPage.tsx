@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Package, ChevronRight, Filter } from "lucide-react";
 
-import { Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Spinner, EmptyState } from "@/components/ui";
 import { BookingStatusBadge } from "@/components/ui/Badge";
 import { useBookings } from "@/hooks/useBookings";
 import { formatDate } from "@/lib/utils";
@@ -113,11 +113,11 @@ export default function BookingsPage() {
       )}
 
       {filtered.length === 0 ? (
-        <div className="p-8 text-center text-gray-400">
-          {activeStatus
-            ? "Aucune réservation pour ce statut."
-            : "Aucune réservation pour le moment."}
-        </div>
+        <EmptyState
+          icon={Package}
+          title="Aucune réservation"
+          description="Tu n'as pas encore de réservation. Explore les trajets disponibles pour commencer."
+        />
       ) : (
         <Card className="p-0 overflow-hidden">
           {filtered.map((booking) => (
