@@ -19,6 +19,8 @@ interface LoginResponse {
     last_name: string
     email: string
     role: UserRole
+    phone: string | null
+    country: string | null
   }
 }
 
