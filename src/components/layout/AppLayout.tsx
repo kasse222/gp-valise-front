@@ -33,7 +33,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
   const SidebarContent = () => (
     <>
       <div className="px-6 py-5 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-indigo-600">GP-Valise</h1>
+        <h1 className="text-xl font-bold text-indigo-600">Safe Move</h1>
         <p className="text-xs text-gray-500 mt-0.5">
           {user?.first_name} {user?.last_name}
         </p>
@@ -110,7 +110,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu size={22} className="text-gray-600" />
           </button>
-          <h1 className="text-lg font-bold text-indigo-600">GP-Valise</h1>
+          <h1 className="text-lg font-bold text-indigo-600">Safe Move</h1>
         </div>
         {children}
       </main>
