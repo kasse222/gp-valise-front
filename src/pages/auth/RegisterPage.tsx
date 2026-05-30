@@ -78,7 +78,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-600">GP-Valise</h1>
+          <h1 className="text-3xl font-bold text-indigo-600">Safe Move</h1>
           <p className="text-gray-500 mt-2">Créez votre compte</p>
         </div>
 
