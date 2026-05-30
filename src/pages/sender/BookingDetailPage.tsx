@@ -43,7 +43,7 @@ export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bookingId = Number(id);
   const queryClient = useQueryClient();
-  const userCountry = useAuthStore((s) => s.user?.country) ?? "FR";
+  const userCountry = useAuthStore((s) => s.user?.country) ?? "SN";
   const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   const [phone, setPhone] = useState("");
