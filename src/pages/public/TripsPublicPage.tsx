@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Plane, ArrowLeft, X } from "lucide-react";
+import { Plane, ArrowLeft, X, MapPin, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { getTrips } from "@/api/trips";
@@ -227,9 +227,13 @@ export default function TripsPublicPage() {
   const isTravelerUser = isLoggedIn && isTraveler(user!.role);
 
   const [searchParams] = useSearchParams();
-  const filterDeparture = searchParams.get("departure")?.toLowerCase() ?? "";
-  const filterDestination = searchParams.get("destination")?.toLowerCase() ?? "";
+  const filterDeparture = searchParams.get("departure") ?? "";
+  const filterDestination = searchParams.get("destination") ?? "";
   const filterDate = searchParams.get("date") ?? "";
+
+  const [searchDeparture, setSearchDeparture] = useState(filterDeparture);
+  const [searchDestination, setSearchDestination] = useState(filterDestination);
+  const [searchDate, setSearchDate] = useState(filterDate);
 
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
@@ -240,9 +244,11 @@ export default function TripsPublicPage() {
   });
 
   const filteredTrips = (trips ?? []).filter((trip) => {
-    if (filterDeparture && !trip.departure.toLowerCase().includes(filterDeparture)) return false;
-    if (filterDestination && !trip.destination.toLowerCase().includes(filterDestination)) return false;
-    if (filterDate && trip.date && !trip.date.startsWith(filterDate)) return false;
+    const dep = searchDeparture.toLowerCase();
+    const dest = searchDestination.toLowerCase();
+    if (dep && !trip.departure.toLowerCase().includes(dep)) return false;
+    if (dest && !trip.destination.toLowerCase().includes(dest)) return false;
+    if (searchDate && trip.date && !trip.date.startsWith(searchDate)) return false;
     return true;
   });
 
@@ -275,17 +281,50 @@ export default function TripsPublicPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Trajets disponibles</h1>
           <p className="text-gray-500 mt-2">Trouvez un voyageur partant vers votre destination</p>
-          {(filterDeparture || filterDestination || filterDate) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-indigo-600">
-              <span>Filtres actifs :</span>
-              {filterDeparture && <span className="bg-indigo-50 px-2 py-0.5 rounded-full">{filterDeparture}</span>}
-              {filterDestination && <span className="bg-indigo-50 px-2 py-0.5 rounded-full">{filterDestination}</span>}
-              {filterDate && <span className="bg-indigo-50 px-2 py-0.5 rounded-full">{filterDate}</span>}
-              <button onClick={() => navigate("/trips")} className="text-gray-400 hover:text-gray-600 underline ml-1">
-                Effacer
-              </button>
+
+          <div className="mt-6 bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
+              <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={searchDeparture}
+                onChange={(e) => setSearchDeparture(e.target.value)}
+                placeholder="Ville de départ"
+                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+              />
             </div>
-          )}
+            <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
+              <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={searchDestination}
+                onChange={(e) => setSearchDestination(e.target.value)}
+                placeholder="Destination"
+                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+              />
+            </div>
+            <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
+              <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="date"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+              />
+            </div>
+            <button
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (searchDeparture) params.set("departure", searchDeparture);
+                if (searchDestination) params.set("destination", searchDestination);
+                if (searchDate) params.set("date", searchDate);
+                navigate(`/trips?${params.toString()}`);
+              }}
+              className="bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-8 py-3 rounded-xl text-sm transition-colors duration-200 whitespace-nowrap"
+            >
+              Rechercher
+            </button>
+          </div>
         </div>
 
         {isLoading && (
