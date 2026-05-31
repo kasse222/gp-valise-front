@@ -311,10 +311,17 @@ export default function BookingDetailPage() {
               Payer maintenant
             </Button>
 
-            <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-3">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Paiement sécurisé via Safe Move
-            </p>
+            <div className="mt-3 text-center">
+              <img
+                src="/paydunya-badge.png"
+                alt="Moyens de paiement acceptés"
+                className="mx-auto max-w-full h-10 object-contain opacity-80"
+              />
+              <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-2">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Paiement sécurisé via Safe Move
+              </p>
+            </div>
           </Card>
         </div>
       )}
