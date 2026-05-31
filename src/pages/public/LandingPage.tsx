@@ -68,17 +68,29 @@ function FeatureCard({
   );
 }
 
-function SearchField({
+function SearchInput({
   icon,
   placeholder,
+  value,
+  onChange,
+  type = "text",
 }: {
   icon: React.ReactNode;
   placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
 }) {
   return (
     <div className="flex items-center gap-2 flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
       <span className="text-gray-400 shrink-0">{icon}</span>
-      <span className="text-sm text-gray-400 truncate">{placeholder}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+      />
     </div>
   );
 }
@@ -122,6 +134,10 @@ function TripCard({ trip, onSee }: { trip: Trip; onSee: () => void }) {
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  const [departure, setDeparture] = useState("");
+  const [destination, setDestination] = useState("");
+  const [date, setDate] = useState("");
 
   const user = useAuthStore((s) => s.user);
   const dashboardPath = user
@@ -329,59 +345,81 @@ export default function LandingPage() {
       </section>
 
       {/* ── Recherche preview ───────────────────────────────────────────── */}
-      <section id="pricing" className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Rechercher un trajet disponible
-            </h2>
-            <p className="text-gray-500 mb-10">
-              Trouvez des voyageurs partant vers votre destination
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="p-6 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <SearchField icon={<MapPin className="h-4 w-4" />} placeholder="Ville de départ" />
-                <SearchField icon={<MapPin className="h-4 w-4" />} placeholder="Destination" />
-                <SearchField icon={<Calendar className="h-4 w-4" />} placeholder="Date de départ" />
-              </div>
-              <Link
-                to="/trips"
-                className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-center text-sm transition-colors duration-200"
-              >
-                Rechercher
-              </Link>
+      {/* ── Recherche preview ───────────────────────────────────────────── */}
+        <section id="pricing" className="bg-white py-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Rechercher un trajet disponible
+              </h2>
+              <p className="text-gray-500 mb-10">
+                Trouvez des voyageurs partant vers votre destination
+              </p>
             </div>
-            <div className="border-t border-gray-100 p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {isLoading ? (
-                <>
-                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                </>
-              ) : previewTrips.length === 0 ? (
-                <div className="col-span-3 text-center py-8 text-gray-500">
-                  <p>Aucun trajet disponible pour le moment.</p>
-                  <p>Revenez bientôt !</p>
+
+            <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="p-6 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <SearchInput
+                    icon={<MapPin className="h-4 w-4" />}
+                    placeholder="Ville de départ"
+                    value={departure}
+                    onChange={setDeparture}
+                  />
+                  <SearchInput
+                    icon={<MapPin className="h-4 w-4" />}
+                    placeholder="Destination"
+                    value={destination}
+                    onChange={setDestination}
+                  />
+                  <SearchInput
+                    icon={<Calendar className="h-4 w-4" />}
+                    placeholder="Date de départ"
+                    value={date}
+                    onChange={setDate}
+                    type="date"
+                  />
                 </div>
-              ) : (
-                previewTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} onSee={() => navigate("/trips")} />
-                ))
-              )}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (departure) params.set("departure", departure);
+                    if (destination) params.set("destination", destination);
+                    if (date) params.set("date", date);
+                    navigate(`/trips?${params.toString()}`);
+                  }}
+                  className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-center text-sm transition-colors duration-200"
+                >
+                  Rechercher
+                </button>
+              </div>
+              <div className="border-t border-gray-100 p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {isLoading ? (
+                  <>
+                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                  </>
+                ) : previewTrips.length === 0 ? (
+                  <div className="col-span-3 text-center py-8 text-gray-500">
+                    <p>Aucun trajet disponible pour le moment.</p>
+                  </div>
+                ) : (
+                  previewTrips.map((trip) => (
+                    <TripCard key={trip.id} trip={trip} onSee={() => navigate("/trips")} />
+                  ))
+                )}
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={() => navigate("/trips")}
-            className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
-          >
-            Voir tous les trajets disponibles →
-          </button>
-        </div>
-      </section>
+            <button
+              onClick={() => navigate("/trips")}
+              className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
+            >
+              Voir tous les trajets disponibles →
+            </button>
+          </div>
+        </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
       <section
