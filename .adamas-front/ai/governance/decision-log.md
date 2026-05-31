@@ -98,3 +98,133 @@ export const UserRole = { SENDER: 3, TRAVELER: 2, ... }
 export function isSender(role): boolean
 export function isTraveler(role): boolean
 ```
+
+## [2026-05] — Déploiement production statique sur VPS
+
+### Décision
+
+Build Vite statique servi par Nginx système sur le VPS Hetzner.
+
+### Setup
+
+```txt
+/var/www/gp-valise-front/dist → Nginx port 80/443
+/api/* → proxy_pass localhost:8080 (Docker backend)
+```
+
+SSL Let's Encrypt via Certbot sur safemove.tech + www.safemove.tech.
+
+### Conséquences
+
+- `npm run build` sur le VPS après chaque `git pull`
+- Pas de SSR — build statique suffisant (app authentifiée)
+- `VITE_API_URL` pointe vers `/api` (même domaine, pas de CORS)
+
+### Statut
+
+✅ actif
+
+---
+
+## [2026-05] — Responsive mobile : sidebar drawer
+
+### Décision
+
+`AppLayout.tsx` refactorisé avec deux modes :
+
+- Desktop (`md:`) : sidebar fixe 64px
+- Mobile : drawer caché par défaut, ouvert via hamburger `<Menu />`
+
+Pattern :
+
+```tsx
+// Desktop
+<aside className="hidden md:flex w-64 fixed h-screen">
+
+// Mobile drawer
+<aside className={`fixed z-50 transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+// Overlay
+{sidebarOpen && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" />}
+```
+
+### Règle
+
+Fermer la sidebar au clic sur un lien nav (`onClick={() => setSidebarOpen(false)}`).
+
+### Statut
+
+✅ actif
+
+---
+
+## [2026-05] — PSP routing : country fallback côté frontend
+
+### Décision
+
+`BookingDetailPage.tsx` envoie `country` dans le payload pay :
+
+```ts
+const userCountry = useAuthStore((s) => s.user?.country) ?? "SN";
+```
+
+Fallback `"SN"` car le backend route `SN + mobile_money → PayDunya`.
+Fallback `"FR"` initial causait `FakeProvider` → bloqué en production.
+
+### Règle
+
+Le fallback doit toujours pointer vers un pays avec PSP réel configuré.
+À remplacer par détection automatique (géolocalisation ou profil user) en Phase 2.
+
+### Statut
+
+✅ actif — fallback SN
+⏳ à améliorer — Phase 2 détection pays automatique
+
+---
+
+## [2026-05] — Recherche trajets : filtrage côté client
+
+### Décision
+
+Filtrage côté client sur les données déjà fetchées (pas de requête API par filtre).
+
+Landing → `/trips?departure=X&destination=Y&date=Z`
+`TripsPublicPage` → `useSearchParams()` → init states locaux → filtre en mémoire.
+
+```ts
+const filteredTrips = trips.filter((trip) => {
+  if (dep && !trip.departure.toLowerCase().includes(dep)) return false;
+  if (dest && !trip.destination.toLowerCase().includes(dest)) return false;
+  if (date && !trip.date.startsWith(date)) return false;
+  return true;
+});
+```
+
+### Limite
+
+Filtrage client = tous les trips fetchés en mémoire.
+Acceptable pour MVP (volume faible). À migrer vers `GET /trips?departure=X` en Phase 2.
+
+### Statut
+
+✅ actif — MVP
+⏳ à migrer — filtrage backend Phase 2
+
+---
+
+## [2026-05] — Branding : GP-Valise → Safe Move
+
+### Décision
+
+Renommage complet du nom affiché dans l'UI :
+
+- `AppLayout.tsx` : sidebar + topbar mobile
+- `LoginPage.tsx` + `RegisterPage.tsx`
+- Logo : `logo-nav-hori.png` + `logo-blanc.png`
+
+Le nom technique du repo et des packages reste `gp-valise-front`.
+
+### Statut
+
+✅ actif
