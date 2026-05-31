@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Home, Plus } from "lucide-react";
 
 import { useAuthStore } from "@/store/authStore";
 import { Card, Spinner, Button } from "@/components/ui";
@@ -56,91 +56,81 @@ export default function OverviewPage() {
   const bookings = bookingsQuery.data ?? [];
 
   const actifs = trips.filter((t) => t.status.code === "active").length;
-
   const totalBookings = bookings.length;
-
   const capaciteMoyenne =
     trips.length > 0
       ? trips.reduce(
           (sum, t) =>
-            sum +
-            (t.capacity > 0 ? (t.grams_disponible / t.capacity) * 100 : 0),
+            sum + (t.capacity > 0 ? (t.grams_disponible / t.capacity) * 100 : 0),
           0
         ) / trips.length
       : 0;
 
   const recent = [...trips]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 3);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Bonjour, {user?.first_name}
-        </h2>
-        <p className="text-gray-500 mt-1">Voici un aperçu de vos trajets.</p>
+    <div className="p-6 md:p-8">
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Bonjour, {user?.first_name}
+          </h2>
+          <p className="text-gray-500 mt-1">Voici un aperçu de vos trajets.</p>
+        </div>
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors shrink-0 mt-1"
+        >
+          <Home size={15} />
+          <span className="hidden sm:inline">Accueil</span>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="Trajets actifs"
-          value={String(actifs)}
-          color="indigo"
-        />
-        <StatCard
-          label="Réservations reçues"
-          value={String(totalBookings)}
-          color="green"
-        />
-        <StatCard
-          label="Capacité moy. disponible"
-          value={`${capaciteMoyenne.toFixed(0)} %`}
-          color="blue"
-        />
+      {/* CTA Publier un trajet */}
+      <Link
+        to="/traveler/trips/new"
+        className="flex items-center justify-center gap-2 w-full mb-6 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors duration-200"
+      >
+        <Plus size={16} />
+        Publier un trajet
+      </Link>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <StatCard label="Trajets actifs" value={String(actifs)} color="indigo" />
+        <StatCard label="Réservations reçues" value={String(totalBookings)} color="green" />
+        <StatCard label="Capacité moy. disponible" value={`${capaciteMoyenne.toFixed(0)} %`} color="blue" />
       </div>
 
+      {/* Trajets récents */}
       {recent.length > 0 && (
-        <div className="mt-10">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Trajets récents
-          </h3>
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Trajets récents</h3>
           <div className="flex flex-col gap-3">
             {recent.map((trip) => (
-              <Link
-                key={trip.id}
-                to={`/traveler/trips/${trip.id}`}
-                className="block"
-              >
+              <Link key={trip.id} to={`/traveler/trips/${trip.id}`} className="block">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-medium text-gray-900 truncate">
-                        {trip.departure}
-                      </span>
+                      <span className="font-medium text-gray-900 truncate">{trip.departure}</span>
                       <ArrowRight size={14} className="shrink-0 text-gray-400" />
-                      <span className="font-medium text-gray-900 truncate">
-                        {trip.destination}
-                      </span>
+                      <span className="font-medium text-gray-900 truncate">{trip.destination}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                          tripStatusColor[trip.status.code] ??
-                            "bg-gray-100 text-gray-700"
-                        )}
-                      >
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                        tripStatusColor[trip.status.code] ?? "bg-gray-100 text-gray-700"
+                      )}>
                         {tripStatusLabel[trip.status.code] ?? trip.status.label}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 hidden sm:inline">
                         {(trip.grams_disponible / 1000).toFixed(1)} kg dispo
                       </span>
                       {trip.date && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 hidden sm:inline">
                           {formatDate(trip.date)}
                         </span>
                       )}
