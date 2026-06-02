@@ -267,6 +267,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Waitlist ─────────────────────────────────────────────────────── */}
+      <section className="bg-white py-16 border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-6 text-center flex flex-col items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Soyez parmi les premiers informés
+            </h2>
+            <p className="text-gray-500 text-sm">
+              Laissez votre email et un commentaire — on vous contacte au lancement.
+            </p>
+          </div>
+          <WaitlistForm />
+        </div>
+      </section>
+
       {/* ── Comment ça marche ───────────────────────────────────────────── */}
       <section id="how-it-works" className="bg-white py-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -439,19 +454,6 @@ export default function LandingPage() {
               Proposer un trajet
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* ── Waitlist ─────────────────────────────────────────────────────── */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-xl mx-auto px-6 text-center flex flex-col items-center gap-6">
-          <h2 className="text-3xl font-bold text-gray-900">
-            Soyez parmi les premiers informés
-          </h2>
-          <p className="text-gray-500">
-            La plateforme arrive bientôt. Laissez votre email pour être notifié au lancement.
-          </p>
-          <WaitlistForm />
         </div>
       </section>
 
