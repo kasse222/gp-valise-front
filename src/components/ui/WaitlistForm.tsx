@@ -4,6 +4,7 @@ import { CheckCircle } from "lucide-react";
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
+  const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -15,7 +16,11 @@ export function WaitlistForm() {
       const res = await fetch("/api/v1/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role: role || undefined }),
+        body: JSON.stringify({
+          email,
+          role: role || undefined,
+          message: message || undefined,
+        }),
       });
       if (res.status === 201) {
         setSubmitted(true);
@@ -58,6 +63,13 @@ export function WaitlistForm() {
         <option value="traveler">Voyageur</option>
         <option value="curious">Curieux</option>
       </select>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Un commentaire, une question... (optionnel)"
+        rows={3}
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1B3A6B] resize-none"
+      />
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         onClick={handleSubmit}
