@@ -5,6 +5,7 @@ import { getTrips } from "@/api/trips";
 import { useAuthStore, isSender } from "@/store/authStore";
 import { formatDate } from "@/lib/utils";
 import type { Trip } from "@/types";
+import { WaitlistForm } from "@/components/ui/WaitlistForm";
 import {
   User,
   Package,
@@ -18,16 +19,12 @@ import {
   X,
 } from "lucide-react";
 
-// ─── Brand tokens ─────────────────────────────────────────────────────────────
-
 const BRAND = {
   primary: "#1B3A6B",
   primaryHover: "#2B6CB0",
   primaryDark: "#0F2544",
   primaryLight: "#EBF4FF",
 };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Step({ number, text }: { number: number; text: string }) {
   return (
@@ -129,8 +126,6 @@ function TripCard({ trip, onSee }: { trip: Trip; onSee: () => void }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -229,7 +224,7 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ── Hero — image Unsplash libre + overlay brand ─────────────────── */}
+      {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section
         className="relative pt-24 min-h-[75vh] flex items-center justify-center bg-cover bg-center"
         style={{
@@ -237,14 +232,13 @@ export default function LandingPage() {
             "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=2000&q=80')",
         }}
       >
-         <div
-           className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(15,37,68,0.96) 0%, rgba(27,58,107,0.92) 50%, rgba(43,108,176,0.88) 100%)",
-            }}
-          />
-
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(15,37,68,0.96) 0%, rgba(27,58,107,0.92) 50%, rgba(43,108,176,0.88) 100%)",
+          }}
+        />
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-8">
           <div className="flex flex-col gap-4 max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
@@ -345,81 +339,80 @@ export default function LandingPage() {
       </section>
 
       {/* ── Recherche preview ───────────────────────────────────────────── */}
-      {/* ── Recherche preview ───────────────────────────────────────────── */}
-        <section id="pricing" className="bg-white py-20">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Rechercher un trajet disponible
-              </h2>
-              <p className="text-gray-500 mb-10">
-                Trouvez des voyageurs partant vers votre destination
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="p-6 flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <SearchInput
-                    icon={<MapPin className="h-4 w-4" />}
-                    placeholder="Ville de départ"
-                    value={departure}
-                    onChange={setDeparture}
-                  />
-                  <SearchInput
-                    icon={<MapPin className="h-4 w-4" />}
-                    placeholder="Destination"
-                    value={destination}
-                    onChange={setDestination}
-                  />
-                  <SearchInput
-                    icon={<Calendar className="h-4 w-4" />}
-                    placeholder="Date de départ"
-                    value={date}
-                    onChange={setDate}
-                    type="date"
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    const params = new URLSearchParams();
-                    if (departure) params.set("departure", departure);
-                    if (destination) params.set("destination", destination);
-                    if (date) params.set("date", date);
-                    navigate(`/trips?${params.toString()}`);
-                  }}
-                  className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-center text-sm transition-colors duration-200"
-                >
-                  Rechercher
-                </button>
-              </div>
-              <div className="border-t border-gray-100 p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {isLoading ? (
-                  <>
-                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                    <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
-                  </>
-                ) : previewTrips.length === 0 ? (
-                  <div className="col-span-3 text-center py-8 text-gray-500">
-                    <p>Aucun trajet disponible pour le moment.</p>
-                  </div>
-                ) : (
-                  previewTrips.map((trip) => (
-                    <TripCard key={trip.id} trip={trip} onSee={() => navigate("/trips")} />
-                  ))
-                )}
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate("/trips")}
-              className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
-            >
-              Voir tous les trajets disponibles →
-            </button>
+      <section id="pricing" className="bg-white py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Rechercher un trajet disponible
+            </h2>
+            <p className="text-gray-500 mb-10">
+              Trouvez des voyageurs partant vers votre destination
+            </p>
           </div>
-        </section>
+
+          <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <SearchInput
+                  icon={<MapPin className="h-4 w-4" />}
+                  placeholder="Ville de départ"
+                  value={departure}
+                  onChange={setDeparture}
+                />
+                <SearchInput
+                  icon={<MapPin className="h-4 w-4" />}
+                  placeholder="Destination"
+                  value={destination}
+                  onChange={setDestination}
+                />
+                <SearchInput
+                  icon={<Calendar className="h-4 w-4" />}
+                  placeholder="Date de départ"
+                  value={date}
+                  onChange={setDate}
+                  type="date"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (departure) params.set("departure", departure);
+                  if (destination) params.set("destination", destination);
+                  if (date) params.set("date", date);
+                  navigate(`/trips?${params.toString()}`);
+                }}
+                className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-center text-sm transition-colors duration-200"
+              >
+                Rechercher
+              </button>
+            </div>
+            <div className="border-t border-gray-100 p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {isLoading ? (
+                <>
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                  <div className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                </>
+              ) : previewTrips.length === 0 ? (
+                <div className="col-span-3 text-center py-8 text-gray-500">
+                  <p>Aucun trajet disponible pour le moment.</p>
+                </div>
+              ) : (
+                previewTrips.map((trip) => (
+                  <TripCard key={trip.id} trip={trip} onSee={() => navigate("/trips")} />
+                ))
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate("/trips")}
+            className="mt-6 mx-auto block px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-medium hover:bg-[#1B3A6B] hover:text-white transition-colors"
+          >
+            Voir tous les trajets disponibles →
+          </button>
+        </div>
+      </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
       <section
@@ -446,6 +439,19 @@ export default function LandingPage() {
               Proposer un trajet
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ── Waitlist ─────────────────────────────────────────────────────── */}
+      <section className="bg-gray-50 py-20">
+        <div className="max-w-xl mx-auto px-6 text-center flex flex-col items-center gap-6">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Soyez parmi les premiers informés
+          </h2>
+          <p className="text-gray-500">
+            La plateforme arrive bientôt. Laissez votre email pour être notifié au lancement.
+          </p>
+          <WaitlistForm />
         </div>
       </section>
 
