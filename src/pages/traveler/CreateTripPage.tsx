@@ -81,27 +81,43 @@ export default function CreateTripPage() {
           />
 
           {/* Capacité */}
-          <Input
-            label="Capacité disponible (kg)"
-            type="number"
-            required
-            min="1"
-            step="0.1"
-            placeholder="ex : 10"
-            helper="Poids total de bagages que vous pouvez transporter"
-            value={availableKg}
-            onChange={(e) => setAvailableKg(e.target.value)}
-          />
+          {/* Capacité — slider */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-700 select-none">
+              Capacité disponible (kg) <span className="text-red-500" aria-hidden>*</span>
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min={1}
+                max={50}
+                step={0.5}
+                value={availableKg || 10}
+                onChange={(e) => setAvailableKg(e.target.value)}
+                required
+                aria-label="Capacité disponible en kg"
+                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
+              />
+              <span className="min-w-[4rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
+                {availableKg || 10} kg
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>1 kg</span>
+              <span>50 kg</span>
+            </div>
+          </div>
 
           {/* Prix */}
           <Input
             label="Prix par kg (€/kg)"
             type="number"
             required
-            min="0.01"
-            step="0.01"
+            min="1"
+            max="100"
+            step="0.5"
             placeholder="ex : 8"
-            helper="Montant que vous percevrez par kilogramme transporté"
+            helper="Montant en € par kilogramme transporté"
             value={pricePerKg}
             onChange={(e) => setPricePerKg(e.target.value)}
           />
