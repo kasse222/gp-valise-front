@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
-import { MapPin, Package, Home } from 'lucide-react'
+import { Package, Home } from 'lucide-react'
 
 import { Button, Card, Input } from '@/components/ui'
 import { CitySelect } from '@/components/ui/CitySelect'
@@ -157,16 +157,10 @@ export default function CreateTripPage() {
               Où l'expéditeur dépose son colis. Adresse révélée après paiement.
             </p>
             <div className="flex flex-col gap-3">
-              <Input
-                label="Adresse de récupération du colis"
-                value={pickupAddress}
-                onChange={(e) => setPickupAddress(e.target.value)}
-                placeholder="12 rue de la Paix"
-                helper="Masquée jusqu'au paiement confirmé"
-              />
               <MapPickerField
                 initialCity={departure}
                 onCityChange={setPickupCity}
+                onAddressChange={setPickupAddress}
                 onCoords={(exact, approx) => {
                   setPickupExact(exact.lat !== 0 ? exact : null)
                   setPickupApprox(approx.lat !== 0 ? approx : null)
@@ -197,16 +191,10 @@ export default function CreateTripPage() {
               Où l'expéditeur récupère son colis. Adresse révélée après paiement.
             </p>
             <div className="flex flex-col gap-3">
-              <Input
-                label="Adresse de remise du colis"
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                placeholder="45 avenue Victor Hugo"
-                helper="Masquée jusqu'au paiement confirmé"
-              />
               <MapPickerField
                 initialCity={destination}
                 onCityChange={setDeliveryCity}
+                onAddressChange={setDeliveryAddress}
                 onCoords={(exact, approx) => {
                   setDeliveryExact(exact.lat !== 0 ? exact : null)
                   setDeliveryApprox(approx.lat !== 0 ? approx : null)

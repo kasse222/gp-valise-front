@@ -13,10 +13,11 @@ import { CityInputInline } from '@/components/ui/CitySelect'
 interface Coords { lat: number; lng: number }
 
 interface MapPickerFieldProps {
-  onCoords:      (exact: Coords, approx: Coords) => void
-  onCityChange?: (city: string) => void
-  initialCity?:  string
-  initialCoords?: Coords | null
+  onCoords:        (exact: Coords, approx: Coords) => void
+  onCityChange?:   (city: string) => void
+  onAddressChange?: (address: string) => void
+  initialCity?:    string
+  initialCoords?:  Coords | null
 }
 
 function randomOffset(): number {
@@ -48,7 +49,7 @@ async function geocode(query: string): Promise<Coords | null> {
 type L = any
 
 export function MapPickerField({
-  onCoords, onCityChange, initialCity = '', initialCoords,
+  onCoords, onCityChange, onAddressChange, initialCity = '', initialCoords,
 }: MapPickerFieldProps) {
   const mapRef         = useRef<HTMLDivElement>(null)
   const leafletMap     = useRef<L>(null)
@@ -62,6 +63,7 @@ export function MapPickerField({
   const [loading,         setLoading]         = useState(false)
   const [geocoding,       setGeocoding]       = useState(false)
   const [leafletReady,    setLeafletReady]    = useState(false)
+  const [mapVisible,      setMapVisible]      = useState(!!initialCity || !!initialCoords)
   const [error,           setError]           = useState<string | null>(null)
 
   // ── Charger Leaflet ──────────────────────────────────────────────────
@@ -168,6 +170,7 @@ export function MapPickerField({
     setAddress(s.display_name)
     setSuggestions([])
     setShowSuggestions(false)
+    onAddressChange?.(s.display_name)
     const c = { lat: parseFloat(s.lat), lng: parseFloat(s.lon) }
     leafletMap.current?.setView([c.lat, c.lng], 17)
     placeMarker(c)
@@ -176,6 +179,7 @@ export function MapPickerField({
   function handleCityChange(v: string) {
     setCity(v)
     onCityChange?.(v)
+    if (v.trim()) setMapVisible(true)
   }
 
   function handleGeolocate() {
@@ -220,99 +224,101 @@ export function MapPickerField({
         </div>
       </div>
 
-      {/* Adresse → autocomplete Nominatim */}
-      <div className="flex flex-col gap-1.5 relative">
-        <label className="text-xs font-medium text-gray-600">
-          Adresse précise
-          <span className="text-gray-400 font-normal ml-1">(suggestions automatiques)</span>
-        </label>
-        <div className="flex items-center gap-2 border border-gray-300 rounded-[10px] px-3 bg-white min-h-[44px] focus-within:border-[#1B3A6B] focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all">
-          <Search className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            placeholder="Commencez à taper une adresse…"
-            className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none py-2"
-            autoComplete="off"
-          />
-          {geocoding && <span className="text-xs text-gray-400 shrink-0">…</span>}
-        </div>
+      {/* Adresse + carte — visibles seulement après choix ville */}
+      {mapVisible ? (
+        <>
+          {/* Adresse → autocomplete Nominatim */}
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-xs font-medium text-gray-600">
+              Adresse précise
+              <span className="text-gray-400 font-normal ml-1">(suggestions automatiques)</span>
+            </label>
+            <div className="flex items-center gap-2 border border-gray-300 rounded-[10px] px-3 bg-white min-h-[44px] focus-within:border-[#1B3A6B] focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all">
+              <Search className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Commencez à taper une adresse…"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none py-2"
+                autoComplete="off"
+              />
+              {geocoding && <span className="text-xs text-gray-400 shrink-0">…</span>}
+            </div>
 
-        {/* Dropdown suggestions */}
-        {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute top-full left-0 right-0 z-[1000] bg-white border border-gray-200 rounded-[10px] shadow-lg mt-1 max-h-48 overflow-y-auto">
-            {suggestions.map((s, i) => (
-              <li key={i}>
-                <button
-                  type="button"
-                  onMouseDown={() => handleSelectSuggestion(s)}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-[#EBF4FF] transition-colors flex items-start gap-2"
-                >
-                  <MapPin className="w-3.5 h-3.5 text-[#1B3A6B] shrink-0 mt-0.5" aria-hidden />
-                  <span>{s.display_name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={handleGeolocate} disabled={loading || !leafletReady}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] disabled:opacity-50 transition-colors min-h-[44px]">
-          <Locate className="w-4 h-4" aria-hidden />
-          {loading ? 'Localisation…' : 'Ma position'}
-        </button>
-        {coords && (
-          <button type="button" onClick={handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors min-h-[44px]">
-            <RotateCcw className="w-3.5 h-3.5" aria-hidden />
-            Réinitialiser
-          </button>
-        )}
-      </div>
-
-      {/* Carte */}
-      <div className="relative rounded-[14px] overflow-hidden border border-gray-200">
-        {(!leafletReady || geocoding) && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 text-xs text-gray-600 px-3 py-1.5 rounded-full shadow">
-            {!leafletReady ? 'Chargement de la carte…' : 'Recherche en cours…'}
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="absolute top-full left-0 right-0 z-[1000] bg-white border border-gray-200 rounded-[10px] shadow-lg mt-1 max-h-48 overflow-y-auto">
+                {suggestions.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onMouseDown={() => handleSelectSuggestion(s)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-[#EBF4FF] transition-colors flex items-start gap-2"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-[#1B3A6B] shrink-0 mt-0.5" aria-hidden />
+                      <span>{s.display_name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
-        <div ref={mapRef} style={{ height: '300px', width: '100%' }} />
-      </div>
 
-      {/* Bouton valider */}
-      {coords && (
-        <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-[10px]">
-          <MapPin className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-emerald-800">
-              Position confirmée — {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleGeolocate} disabled={loading || !leafletReady}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] disabled:opacity-50 transition-colors min-h-[44px]">
+              <Locate className="w-4 h-4" aria-hidden />
+              {loading ? 'Localisation…' : 'Ma position'}
+            </button>
+            {coords && (
+              <button type="button" onClick={handleReset}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors min-h-[44px]">
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden />
+                Réinitialiser
+              </button>
+            )}
+          </div>
+
+          {/* Carte */}
+          <div className="relative rounded-[14px] overflow-hidden border border-gray-200">
+            {(!leafletReady || geocoding) && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 text-xs text-gray-600 px-3 py-1.5 rounded-full shadow">
+                {!leafletReady ? 'Chargement de la carte…' : 'Recherche en cours…'}
+              </div>
+            )}
+            <div ref={mapRef} style={{ height: '260px', width: '100%' }} />
+          </div>
+
+          {/* Status */}
+          {coords ? (
+            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-[10px]">
+              <MapPin className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden />
+              <p className="text-xs font-semibold text-emerald-800 flex-1">
+                Position confirmée — {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+              </p>
+              <button type="button" onClick={handleReset}
+                className="shrink-0 text-xs text-emerald-700 hover:text-red-600 underline transition-colors">
+                Modifier
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-gray-400" aria-hidden />
+              Saisissez une adresse, cliquez sur la carte ou utilisez votre position
             </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="shrink-0 text-xs text-emerald-700 hover:text-red-600 underline transition-colors"
-          >
-            Modifier
-          </button>
-        </div>
-      )}
+          )}
 
-      {!coords && (
-        <p className="text-xs text-gray-500 flex items-center gap-1.5">
-          <MapPin className="w-3.5 h-3.5 text-gray-400" aria-hidden />
-          Saisissez une adresse, cliquez sur la carte ou utilisez votre position
+          {error && <p className="text-xs text-red-600 flex items-center gap-1"><span aria-hidden>⚠</span> {error}</p>}
+        </>
+      ) : (
+        <p className="text-xs text-gray-400 flex items-center gap-1.5">
+          <MapPin className="w-3.5 h-3.5" aria-hidden />
+          Choisissez d'abord une ville pour afficher la carte
         </p>
       )}
-
-      {error && <p className="text-xs text-red-600 flex items-center gap-1"><span aria-hidden>⚠</span> {error}</p>}
     </div>
   )
 }
