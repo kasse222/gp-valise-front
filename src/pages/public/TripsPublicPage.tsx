@@ -125,23 +125,30 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
           onSubmit={(e) => { e.preventDefault(); mutation.mutate() }}
           className="px-6 py-5 flex flex-col gap-4"
         >
-          {/* Poids */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="kg" className="text-sm font-medium text-gray-700">
+          {/* Poids — slider */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-700 select-none">
               Poids réservé (kg)
             </label>
-            <input
-              id="kg"
-              type="number"
-              min={0.5}
-              max={maxKg}
-              step={0.5}
-              value={kgReserved}
-              onChange={(e) => setKgReserved(Number(e.target.value))}
-              required
-              className="w-full min-h-[48px] px-4 py-3 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900"
-            />
-            <p className="text-xs text-gray-400">Max : {maxKg.toFixed(1)} kg</p>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min={0.5}
+                max={maxKg}
+                step={0.5}
+                value={kgReserved}
+                onChange={(e) => setKgReserved(Number(e.target.value))}
+                aria-label="Poids réservé en kg"
+                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
+              />
+              <span className="min-w-[4.5rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
+                {kgReserved} kg
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>0.5 kg</span>
+              <span>{maxKg.toFixed(1)} kg</span>
+            </div>
           </div>
 
           {/* Description */}
