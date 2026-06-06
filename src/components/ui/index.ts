@@ -6,8 +6,9 @@ export { Badge, BookingStatusBadge, StatusBadge }    from './Badge'
 export type { BookingStatusCode }                    from './Badge'
 export { WaitlistForm }                              from './WaitlistForm'
 export { CitySelect, CityInputInline, WORLD_CITIES } from './CitySelect'
+export { PickupLocationCard }                        from './PickupLocationCard'
 
-// Extended atoms (Spinner.tsx → remplacé par ui-extended)
+// Extended atoms
 export {
   Spinner,
   SkeletonText,

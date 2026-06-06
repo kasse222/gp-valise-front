@@ -14,7 +14,8 @@ import { useBooking } from '@/hooks/useBooking'
 import { useTransactions } from '@/hooks/useTransactions'
 import { payBooking } from '@/api/bookings'
 import { formatAmount, formatDate } from '@/lib/utils'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, isTraveler } from '@/store/authStore'
+import { PickupLocationCard } from '@/components/ui/PickupLocationCard'
 import client from '@/api/client'
 
 // ─── Banner component ──────────────────────────────────────────────────────
@@ -123,7 +124,9 @@ export default function BookingDetailPage() {
   const bookingId   = Number(id)
   const queryClient = useQueryClient()
   const navigate    = useNavigate()
-  const userCountry = useAuthStore((s) => s.user?.country) ?? 'SN'
+  const userRole      = useAuthStore((s) => s.user?.role)
+  const isTravelerUser = userRole !== undefined && isTraveler(userRole)
+  const userCountry   = useAuthStore((s) => s.user?.country) ?? 'SN'
   const paymentSectionRef = useRef<HTMLDivElement>(null)
 
   const [phone,         setPhone]         = useState('')
@@ -318,6 +321,15 @@ export default function BookingDetailPage() {
             ))}
           </div>
         </Card>
+      )}
+
+      {/* ── Pickup Location ────────────────────────────────────────────── */}
+      {(isConfirmed || isTravelerUser) && (
+        <PickupLocationCard
+          bookingId={bookingId}
+          isTraveler={isTravelerUser}
+          bookingStatus={status}
+        />
       )}
 
       {/* ── Récap financier ────────────────────────────────────────────── */}
