@@ -63,18 +63,18 @@ export default function CreateTripPage() {
       capacity:     Math.round(Number(availableKg) * 1000),
       price_per_kg: Math.round(Number(pricePerKg) * 100),
       type_trip:    typeTrip,
-      ...(pickupAddress && pickupCity ? {
-        pickup_address:          pickupAddress,
-        pickup_city:             pickupCity,
+      ...(pickupCity || pickupExact ? {
+        pickup_address:          pickupAddress || undefined,
+        pickup_city:             pickupCity    || undefined,
         pickup_latitude:         pickupExact?.lat,
         pickup_longitude:        pickupExact?.lng,
         pickup_approx_latitude:  pickupApprox?.lat,
         pickup_approx_longitude: pickupApprox?.lng,
         pickup_instructions:     pickupInstructions || undefined,
       } : {}),
-      ...(deliveryAddress && deliveryCity ? {
-        delivery_address:          deliveryAddress,
-        delivery_city:             deliveryCity,
+      ...(deliveryCity || deliveryExact ? {
+        delivery_address:          deliveryAddress || undefined,
+        delivery_city:             deliveryCity    || undefined,
         delivery_latitude:         deliveryExact?.lat,
         delivery_longitude:        deliveryExact?.lng,
         delivery_approx_latitude:  deliveryApprox?.lat,

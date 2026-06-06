@@ -144,6 +144,10 @@ export function MapPickerField({
     }).addTo(map).bindPopup("Zone visible par l'expéditeur avant paiement")
     setCoords(c)
     onCoords(c, approx)
+    // Si pas d'adresse saisie, utiliser les coordonnées comme référence
+    if (!address) {
+      onAddressChange?.(`${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onCoords])
 
