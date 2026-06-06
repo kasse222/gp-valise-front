@@ -109,18 +109,32 @@ export default function CreateTripPage() {
           </div>
 
           {/* Prix */}
-          <Input
-            label="Prix par kg (€/kg)"
-            type="number"
-            required
-            min="1"
-            max="100"
-            step="0.5"
-            placeholder="ex : 8"
-            helper="Montant en € par kilogramme transporté"
-            value={pricePerKg}
-            onChange={(e) => setPricePerKg(e.target.value)}
-          />
+          {/* Prix — slider */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-700 select-none">
+              Prix par kg (€/kg) <span className="text-red-500" aria-hidden>*</span>
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min={1}
+                max={100}
+                step={0.5}
+                value={pricePerKg || 8}
+                onChange={(e) => setPricePerKg(e.target.value)}
+                required
+                aria-label="Prix par kilogramme en euros"
+                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
+              />
+              <span className="min-w-[4rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
+                {pricePerKg || 8} €
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>1 €</span>
+              <span>100 €</span>
+            </div>
+          </div>
 
           {/* Type de trajet */}
           <div className="flex flex-col gap-1.5">
