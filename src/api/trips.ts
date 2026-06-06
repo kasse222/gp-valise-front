@@ -32,6 +32,14 @@ export interface CreateTripPayload {
   pickup_approx_latitude?:       number
   pickup_approx_longitude?:      number
   pickup_instructions?:          string
+  // Delivery location
+  delivery_address?:             string
+  delivery_city?:                string
+  delivery_latitude?:            number
+  delivery_longitude?:           number
+  delivery_approx_latitude?:     number
+  delivery_approx_longitude?:    number
+  delivery_instructions?:        string
 }
 
 export async function createTrip(payload: CreateTripPayload): Promise<Trip> {
