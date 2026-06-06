@@ -294,9 +294,6 @@ export function MapPickerField({
             <p className="text-xs font-semibold text-emerald-800">
               Position confirmée — {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
             </p>
-            <p className="text-xs text-emerald-600 mt-0.5">
-              Zone ~500m visible par l'expéditeur avant paiement.
-            </p>
           </div>
           <button
             type="button"

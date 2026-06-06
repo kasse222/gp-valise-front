@@ -142,7 +142,7 @@ export default function CreateTripPage() {
               label="Adresse"
               value={pickupAddress}
               onChange={(e) => setPickupAddress(e.target.value)}
-              placeholder="12 rue de la Paix"
+              placeholder="Adresse de dépôt du colis ..."
               helper="Masquée jusqu'au paiement confirmé"
             />
             <div className="flex flex-col gap-1.5">
