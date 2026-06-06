@@ -51,3 +51,14 @@ export async function payBooking(
   );
   return data;
 }
+export async function cancelBooking(bookingId: number): Promise<void> {
+  await client.post(`/bookings/${bookingId}/cancel`)
+}
+
+export async function approveBooking(bookingId: number): Promise<void> {
+  await client.post(`/bookings/${bookingId}/approve`)
+}
+
+export async function declineBooking(bookingId: number): Promise<void> {
+  await client.post(`/bookings/${bookingId}/decline`)
+}
