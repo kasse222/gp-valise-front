@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { LayoutDashboard, Plane, Wallet, User } from "lucide-react";
 
-import OverviewPage from "./OverviewPage";
+import OverviewPage from "./TravelerOverviewPage";
 import TripsPage from "./TripsPage";
 import TripDetailPage from "./TripDetailPage";
 import CreateTripPage from "./CreateTripPage";
