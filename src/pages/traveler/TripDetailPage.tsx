@@ -87,15 +87,13 @@ function BookingRow({ booking }: { booking: ReturnType<typeof useBookings>['data
 
 interface LocationSectionProps {
   tripId:       number
-  label:        string
-  icon:         React.ReactNode
   type:         'pickup' | 'delivery'
   existingAddress?: string | null
   existingCity?:    string | null
   existingInstructions?: string | null
 }
 
-function LocationSection({ tripId, label, icon, type, existingAddress, existingCity, existingInstructions }: LocationSectionProps) {
+function LocationSection({ tripId, type, existingAddress, existingCity, existingInstructions }: LocationSectionProps) {
   const queryClient  = useQueryClient()
   const [address,      setAddress]      = useState(existingAddress      ?? '')
   const [city,         setCity]         = useState(existingCity         ?? '')
@@ -252,7 +250,6 @@ export default function TripDetailPage() {
         <p className="text-xs text-gray-400 mb-3">Adresse masquée pour les expéditeurs jusqu'à paiement confirmé.</p>
         <LocationSection
           tripId={tripId} type="pickup"
-          label="pickup" icon={<MapPin className="w-4 h-4" />}
           existingAddress={trip.pickup_address}
           existingCity={trip.pickup_city}
           existingInstructions={trip.pickup_instructions}
@@ -268,7 +265,6 @@ export default function TripDetailPage() {
         <p className="text-xs text-gray-400 mb-3">Adresse masquée pour les expéditeurs jusqu'à paiement confirmé.</p>
         <LocationSection
           tripId={tripId} type="delivery"
-          label="delivery" icon={<Home className="w-4 h-4" />}
           existingAddress={trip.delivery_address}
           existingCity={trip.delivery_city}
           existingInstructions={trip.delivery_instructions}
