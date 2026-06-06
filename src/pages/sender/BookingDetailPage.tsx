@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, AlertCircle, ShieldCheck,
-  Package, ExternalLink, Clock, Search, X,
+  ExternalLink, Clock, Search, X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
@@ -12,7 +12,7 @@ import { Button, Card, Spinner, StatusBadge, CountdownTimer, ConfirmModal } from
 import type { BookingStatusCode } from '@/components/ui/Badge'
 import { useBooking } from '@/hooks/useBooking'
 import { useTransactions } from '@/hooks/useTransactions'
-import { payBooking, cancelBooking } from '@/api/bookings'
+import { payBooking } from '@/api/bookings'
 import { formatAmount, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import client from '@/api/client'
