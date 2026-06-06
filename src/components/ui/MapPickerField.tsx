@@ -80,11 +80,20 @@ export function MapPickerField({
     document.head.appendChild(script)
   }, [])
 
-  // ── Init carte ───────────────────────────────────────────────────────
+  // Quand la carte devient visible → initialiser ou invalider
   useEffect(() => {
-    if (!leafletReady || !mapRef.current || leafletMap.current) return
+    if (!mapVisible || !leafletReady || !mapRef.current) return
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Lf  = (window as any).L
+    const Lf = (window as any).L
+
+    if (leafletMap.current) {
+      // Déjà initialisée → juste invalider la taille
+      setTimeout(() => leafletMap.current?.invalidateSize(), 100)
+      return
+    }
+
+    // Première initialisation
     const map = Lf.map(mapRef.current).setView([14.6937, -17.4441], 12)
     Lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors', maxZoom: 19,
@@ -93,12 +102,13 @@ export function MapPickerField({
       placeMarker({ lat: e.latlng.lat, lng: e.latlng.lng })
     })
     leafletMap.current = map
+
     if (initialCoords) {
       placeMarker(initialCoords)
       map.setView([initialCoords.lat, initialCoords.lng], 15)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leafletReady])
+  }, [mapVisible, leafletReady])
 
   function makeIcon() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
