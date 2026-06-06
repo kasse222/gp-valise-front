@@ -150,13 +150,26 @@ function LocationSection({
 
   // ── Vue lecture seule ────────────────────────────────────────────────
   if (!editing && existingAddress) {
+    const isCoords = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(existingAddress.trim())
+    const mapsUrl  = isCoords
+      ? `https://www.google.com/maps?q=${existingAddress.trim()}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(existingAddress + ', ' + (existingCity ?? ''))}`
+
     return (
       <div className="flex flex-col gap-2">
         <div className="bg-gray-50 rounded-[10px] p-3 text-sm">
-          <p className="font-medium text-gray-900">{existingAddress}</p>
-          <p className="text-gray-500 text-xs mt-0.5">{existingCity}</p>
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#1B3A6B] hover:underline flex items-center gap-1.5"
+          >
+            <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            {existingAddress}
+          </a>
+          <p className="text-gray-500 text-xs mt-0.5 ml-5">{existingCity}</p>
           {existingInstructions && (
-            <p className="text-xs text-gray-400 mt-1.5">ℹ️ {existingInstructions}</p>
+            <p className="text-xs text-gray-400 mt-1.5 ml-5">ℹ️ {existingInstructions}</p>
           )}
         </div>
         {hasActiveBookings ? (
