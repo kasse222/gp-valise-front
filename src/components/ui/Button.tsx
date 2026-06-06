@@ -1,56 +1,68 @@
+import { forwardRef } from 'react'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  size?:    'sm' | 'md' | 'lg'
   loading?: boolean
+  leftIcon?:  React.ReactNode
+  rightIcon?: React.ReactNode
 }
 
-export function Button({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  className,
-  children,
-  disabled,
-  ...props
-}: ButtonProps) {
-  const variants = {
-    primary:   'bg-indigo-600 hover:bg-indigo-700 text-white',
-    secondary: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300',
-    danger:    'bg-red-600 hover:bg-red-700 text-white',
-    ghost:     'hover:bg-gray-100 text-gray-600',
-  }
+const variants = {
+  primary:
+    'bg-[#1B3A6B] text-white shadow-sm hover:bg-[#2B6CB0] hover:shadow-md ' +
+    'focus-visible:shadow-[0_0_0_3px_rgba(27,58,107,0.3)]',
+  secondary:
+    'bg-white text-[#1B3A6B] border border-[#1B3A6B] shadow-sm ' +
+    'hover:bg-[#EBF4FF] focus-visible:shadow-[0_0_0_3px_rgba(27,58,107,0.25)]',
+  danger:
+    'bg-red-600 text-white shadow-sm hover:bg-red-700 ' +
+    'focus-visible:shadow-[0_0_0_3px_rgba(220,38,38,0.3)]',
+  ghost:
+    'bg-transparent text-[#1B3A6B] hover:bg-[#EBF4FF] ' +
+    'focus-visible:shadow-[0_0_0_3px_rgba(27,58,107,0.25)]',
+}
 
-  const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3 text-base',
-  }
+const sizes = {
+  sm: 'px-4 py-2 text-sm min-h-[40px]',
+  md: 'px-5 py-2.5 text-sm min-h-[48px]',
+  lg: 'px-8 py-3.5 text-base min-h-[52px]',
+}
 
-  return (
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    { variant = 'primary', size = 'md', loading = false, leftIcon, rightIcon,
+      disabled, children, className, ...props },
+    ref,
+  ) => (
     <button
+      ref={ref}
       disabled={disabled || loading}
+      aria-busy={loading}
+      aria-disabled={disabled || loading}
       className={cn(
-        'rounded-lg font-medium transition-colors focus:outline-none',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 font-semibold rounded-full',
+        'transition-all duration-200 focus:outline-none active:scale-[0.98]',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
+        'select-none',
         variants[variant],
         sizes[size],
         className,
       )}
       {...props}
     >
-      {loading ? (
-        <span className="flex items-center gap-2">
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10"
-              stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          {children}
-        </span>
-      ) : children}
+      {loading
+        ? <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+        : leftIcon
+          ? <span className="shrink-0" aria-hidden>{leftIcon}</span>
+          : null}
+      {children}
+      {!loading && rightIcon && (
+        <span className="shrink-0" aria-hidden>{rightIcon}</span>
+      )}
     </button>
-  )
-}
+  ),
+)
+Button.displayName = 'Button'
