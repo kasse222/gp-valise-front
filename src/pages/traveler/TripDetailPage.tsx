@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Package, ChevronRight, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Package, ChevronRight, CheckCircle, XCircle, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
@@ -10,6 +11,7 @@ import { useTrip } from '@/hooks/useTrips'
 import { useBookings } from '@/hooks/useBookings'
 import { approveBooking, declineBooking } from '@/api/bookings'
 import { cn, formatAmount, formatDate, tripStatusColor } from '@/lib/utils'
+import { updateTrip } from '@/api/trips'
 
 // ─── Capacity Bar ──────────────────────────────────────────────────────────
 
@@ -116,7 +118,104 @@ function BookingRow({ booking }: { booking: ReturnType<typeof useBookings>['data
   )
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────
+// ─── Trip Pickup Form ──────────────────────────────────────────────────────
+
+function TripPickupForm({ trip }: { trip: ReturnType<typeof useTrip>['data'] }) {
+  const queryClient = useQueryClient()
+  const [address,      setAddress]      = useState(trip?.pickup_address      ?? '')
+  const [city,         setCity]         = useState(trip?.pickup_city         ?? '')
+  const [lat,          setLat]          = useState(String(trip?.pickup_latitude              ?? ''))
+  const [lng,          setLng]          = useState(String(trip?.pickup_longitude             ?? ''))
+  const [approxLat,    setApproxLat]    = useState(String(trip?.pickup_approx_latitude       ?? ''))
+  const [approxLng,    setApproxLng]    = useState(String(trip?.pickup_approx_longitude      ?? ''))
+  const [instructions, setInstructions] = useState(trip?.pickup_instructions ?? '')
+  const [open,         setOpen]         = useState(!trip?.pickup_address)
+
+  const mutation = useMutation({
+    mutationFn: () => updateTrip(trip!.id, {
+      pickup_address:               address,
+      pickup_city:                  city,
+      pickup_latitude:              lat       ? Number(lat)       : undefined,
+      pickup_longitude:             lng       ? Number(lng)       : undefined,
+      pickup_approx_latitude:       approxLat ? Number(approxLat) : undefined,
+      pickup_approx_longitude:      approxLng ? Number(approxLng) : undefined,
+      pickup_instructions:          instructions || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Point de dépôt enregistré.')
+      queryClient.invalidateQueries({ queryKey: ['trip', trip!.id] })
+      setOpen(false)
+    },
+    onError: (err: AxiosError<{ message?: string }>) => {
+      toast.error(err.response?.data?.message ?? 'Une erreur est survenue.')
+    },
+  })
+
+  if (!open && trip?.pickup_address) {
+    return (
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-sm">
+          <p className="font-medium text-gray-900">{trip.pickup_address}</p>
+          <p className="text-gray-500 text-xs mt-0.5">{trip.pickup_city}</p>
+          {trip.pickup_instructions && (
+            <p className="text-xs text-gray-400 mt-1">ℹ️ {trip.pickup_instructions}</p>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>Modifier</Button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Adresse</label>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 rue de la Paix" required
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Ville</label>
+          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Dakar" required
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Latitude exacte</label>
+          <input type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="14.6937"
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B]" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Longitude exacte</label>
+          <input type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="-17.4441"
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B]" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Lat. approx (~500m)</label>
+          <input type="number" step="any" value={approxLat} onChange={(e) => setApproxLat(e.target.value)} placeholder="14.69"
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B]" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Lng. approx (~500m)</label>
+          <input type="number" step="any" value={approxLng} onChange={(e) => setApproxLng(e.target.value)} placeholder="-17.44"
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B]" />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600 mb-1 block">Instructions (optionnel)</label>
+          <input value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Ex : Sonner à l'interphone…"
+            className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B]" />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        {trip?.pickup_address && (
+          <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
+        )}
+        <Button type="submit" variant="primary" size="sm" loading={mutation.isPending}>
+          Enregistrer
+        </Button>
+      </div>
+    </form>
+  )
+}
 
 export default function TripDetailPage() {
   const { id }   = useParams<{ id: string }>()
@@ -192,6 +291,18 @@ export default function TripDetailPage() {
             </div>
           )}
         </dl>
+      </Card>
+
+      {/* Point de dépôt — modifiable par le traveler */}
+      <Card className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <MapPin className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Point de dépôt colis</h2>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">
+          L'adresse exacte est masquée pour les expéditeurs jusqu'à confirmation du paiement.
+        </p>
+        <TripPickupForm trip={trip} />
       </Card>
 
       {/* Réservations reçues */}

@@ -48,6 +48,19 @@ export interface LocationResource {
   created_at: string;
 }
 
+// ── Pickup Location ───────────────────────────────────────────────────────────
+
+export interface PickupLocation {
+  address:               string | null;
+  city:                  string | null;
+  latitude:              number | null;
+  longitude:             number | null;
+  approximate_latitude:  number | null;
+  approximate_longitude: number | null;
+  instructions:          string | null;
+  revealed:              boolean;
+}
+
 // ── Trip ──────────────────────────────────────────────────────────────────────
 
 export interface TripResource {
@@ -73,6 +86,16 @@ export interface TripResource {
   locations: LocationResource[];
   created_at: string;
   updated_at: string;
+  // Pickup location — objet révélé/masqué selon contexte sender
+  pickup_location:           PickupLocation | null;
+  // Champs directs — pour le traveler owner (PUT /trips/:id)
+  pickup_address?:           string | null;
+  pickup_city?:              string | null;
+  pickup_latitude?:          number | null;
+  pickup_longitude?:         number | null;
+  pickup_approx_latitude?:   number | null;
+  pickup_approx_longitude?:  number | null;
+  pickup_instructions?:      string | null;
 }
 
 // ── Luggage ───────────────────────────────────────────────────────────────────
@@ -152,8 +175,7 @@ export interface BookingResource {
 }
 
 export type Booking = BookingResource;
-
-export type Trip = TripResource;
+export type Trip    = TripResource;
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
