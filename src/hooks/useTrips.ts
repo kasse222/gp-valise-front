@@ -6,7 +6,7 @@ export function useTrips() {
   return useQuery<Trip[]>({
     queryKey: ["trips"],
     queryFn: getTrips,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 }
 
@@ -14,7 +14,7 @@ export function useTrip(id: number) {
   return useQuery<Trip>({
     queryKey: ["trip", id],
     queryFn: () => getTrip(id),
-    staleTime: 30_000,
+    staleTime: 0,
     enabled: id > 0,
   });
 }
