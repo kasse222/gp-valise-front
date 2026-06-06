@@ -133,7 +133,6 @@ export default function BookingsPage() {
 
           {/* StatusBadge cliquables */}
           {usedStatuses.map((status) => {
-            const count = bookings.filter((b) => b.status === status).length
             return (
               <StatusBadge
                 key={status}

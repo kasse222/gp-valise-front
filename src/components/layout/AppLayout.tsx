@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import client from '@/api/client'
 import toast from 'react-hot-toast'
 import { LogOut, User, Menu, X } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+
 
 interface NavItem {
   label: string

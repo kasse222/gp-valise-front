@@ -14,7 +14,6 @@ import { formatDate, formatAmount } from '@/lib/utils'
 import {
   Button,
   Card,
-  Spinner,
   EmptyState,
   SkeletonList,
 } from '@/components/ui'
