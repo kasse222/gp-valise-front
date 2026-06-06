@@ -87,7 +87,9 @@ export interface TripResource {
   created_at: string;
   updated_at: string;
   // Pickup location — objet révélé/masqué selon contexte sender
-  pickup_location:           PickupLocation | null;
+  pickup_location:            PickupLocation | null;
+  // Delivery location
+  delivery_location:          PickupLocation | null;
   // Champs directs — pour le traveler owner (PUT /trips/:id)
   pickup_address?:           string | null;
   pickup_city?:              string | null;
@@ -96,6 +98,13 @@ export interface TripResource {
   pickup_approx_latitude?:   number | null;
   pickup_approx_longitude?:  number | null;
   pickup_instructions?:      string | null;
+  delivery_address?:         string | null;
+  delivery_city?:            string | null;
+  delivery_latitude?:        number | null;
+  delivery_longitude?:       number | null;
+  delivery_approx_latitude?:  number | null;
+  delivery_approx_longitude?: number | null;
+  delivery_instructions?:    string | null;
 }
 
 // ── Luggage ───────────────────────────────────────────────────────────────────

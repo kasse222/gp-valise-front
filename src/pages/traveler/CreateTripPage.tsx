@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
-import { MapPin } from 'lucide-react'
+import { MapPin, Package, Home } from 'lucide-react'
 
 import { Button, Card, Input } from '@/components/ui'
 import { CitySelect } from '@/components/ui/CitySelect'
@@ -16,17 +16,27 @@ export default function CreateTripPage() {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
 
-  const [departure,          setDeparture]          = useState('')
-  const [destination,        setDestination]        = useState('')
-  const [date,               setDate]               = useState('')
-  const [availableKg,        setAvailableKg]        = useState('10')
-  const [pricePerKg,         setPricePerKg]         = useState('8')
-  const [typeTrip,           setTypeTrip]           = useState('standard')
+  // ── Trajet ───────────────────────────────────────────────────────────
+  const [departure,   setDeparture]   = useState('')
+  const [destination, setDestination] = useState('')
+  const [date,        setDate]        = useState('')
+  const [availableKg, setAvailableKg] = useState('10')
+  const [pricePerKg,  setPricePerKg]  = useState('8')
+  const [typeTrip,    setTypeTrip]    = useState('standard')
+
+  // ── Pickup (dépôt) ───────────────────────────────────────────────────
   const [pickupAddress,      setPickupAddress]      = useState('')
   const [pickupCity,         setPickupCity]         = useState('')
-  const [exactCoords,        setExactCoords]        = useState<Coords | null>(null)
-  const [approxCoords,       setApproxCoords]       = useState<Coords | null>(null)
+  const [pickupExact,        setPickupExact]        = useState<Coords | null>(null)
+  const [pickupApprox,       setPickupApprox]       = useState<Coords | null>(null)
   const [pickupInstructions, setPickupInstructions] = useState('')
+
+  // ── Delivery (récupération) ──────────────────────────────────────────
+  const [deliveryAddress,      setDeliveryAddress]      = useState('')
+  const [deliveryCity,         setDeliveryCity]         = useState('')
+  const [deliveryExact,        setDeliveryExact]        = useState<Coords | null>(null)
+  const [deliveryApprox,       setDeliveryApprox]       = useState<Coords | null>(null)
+  const [deliveryInstructions, setDeliveryInstructions] = useState('')
 
   const mutation = useMutation({
     mutationFn: createTrip,
@@ -49,14 +59,25 @@ export default function CreateTripPage() {
       capacity:     Math.round(Number(availableKg) * 1000),
       price_per_kg: Math.round(Number(pricePerKg) * 100),
       type_trip:    typeTrip,
+      // Pickup
       ...(pickupAddress && pickupCity ? {
         pickup_address:          pickupAddress,
         pickup_city:             pickupCity,
-        pickup_latitude:         exactCoords?.lat,
-        pickup_longitude:        exactCoords?.lng,
-        pickup_approx_latitude:  approxCoords?.lat,
-        pickup_approx_longitude: approxCoords?.lng,
+        pickup_latitude:         pickupExact?.lat,
+        pickup_longitude:        pickupExact?.lng,
+        pickup_approx_latitude:  pickupApprox?.lat,
+        pickup_approx_longitude: pickupApprox?.lng,
         pickup_instructions:     pickupInstructions || undefined,
+      } : {}),
+      // Delivery
+      ...(deliveryAddress && deliveryCity ? {
+        delivery_address:          deliveryAddress,
+        delivery_city:             deliveryCity,
+        delivery_latitude:         deliveryExact?.lat,
+        delivery_longitude:        deliveryExact?.lng,
+        delivery_approx_latitude:  deliveryApprox?.lat,
+        delivery_approx_longitude: deliveryApprox?.lng,
+        delivery_instructions:     deliveryInstructions || undefined,
       } : {}),
     })
   }
@@ -70,17 +91,15 @@ export default function CreateTripPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-        {/* Informations trajet */}
+        {/* ── Informations trajet ─────────────────────────────────────── */}
         <Card>
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Informations du trajet</h2>
           <div className="flex flex-col gap-5">
-
             <CitySelect label="Ville de départ" value={departure} onChange={setDeparture} placeholder="ex : Dakar" required />
             <CitySelect label="Destination" value={destination} onChange={setDestination} placeholder="ex : Paris" required />
-
             <Input label="Date et heure de départ" type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} />
 
-            {/* Capacité slider */}
+            {/* Capacité */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700 select-none">
                 Capacité disponible (kg) <span className="text-red-500" aria-hidden>*</span>
@@ -88,7 +107,6 @@ export default function CreateTripPage() {
               <div className="flex items-center gap-4">
                 <input type="range" min={1} max={50} step={0.5} value={availableKg}
                   onChange={(e) => setAvailableKg(e.target.value)}
-                  aria-label="Capacité disponible en kg"
                   className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
                 <span className="min-w-[4rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
                   {availableKg} kg
@@ -97,7 +115,7 @@ export default function CreateTripPage() {
               <div className="flex justify-between text-xs text-gray-400"><span>1 kg</span><span>50 kg</span></div>
             </div>
 
-            {/* Prix slider */}
+            {/* Prix */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700 select-none">
                 Prix par kg (€/kg) <span className="text-red-500" aria-hidden>*</span>
@@ -105,7 +123,6 @@ export default function CreateTripPage() {
               <div className="flex items-center gap-4">
                 <input type="range" min={1} max={100} step={0.5} value={pricePerKg}
                   onChange={(e) => setPricePerKg(e.target.value)}
-                  aria-label="Prix par kilogramme en euros"
                   className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
                 <span className="min-w-[4rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
                   {pricePerKg} €
@@ -127,52 +144,91 @@ export default function CreateTripPage() {
           </div>
         </Card>
 
-        {/* Point de dépôt */}
-        <Card>
-          <div className="flex items-center gap-2 mb-1">
-            <MapPin className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
-            <h2 className="text-sm font-semibold text-gray-700">Point de dépôt colis</h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-4">
-            Où les expéditeurs déposent leur colis. L'adresse exacte est révélée après paiement confirmé.
-          </p>
+        {/* ── 2 cartes côte à côte (desktop) / empilées (mobile) ──────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          <div className="flex flex-col gap-4">
-            <Input
-              label="Adresse"
-              value={pickupAddress}
-              onChange={(e) => setPickupAddress(e.target.value)}
-              placeholder="Adresse de dépôt du colis ..."
-              helper="Masquée jusqu'au paiement confirmé"
-            />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Localisation sur la carte</label>
+          {/* Point de dépôt */}
+          <Card>
+            <div className="flex items-center gap-2 mb-1">
+              <Package className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
+              <h2 className="text-sm font-semibold text-gray-700">Point de dépôt</h2>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Où l'expéditeur dépose son colis. Adresse révélée après paiement.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Input
+                label="Adresse de dépôt"
+                value={pickupAddress}
+                onChange={(e) => setPickupAddress(e.target.value)}
+                placeholder="12 rue de la Paix"
+                helper="Masquée jusqu'au paiement confirmé"
+              />
               <MapPickerField
-                initialCity={pickupCity}
+                initialCity={departure}
                 onCityChange={setPickupCity}
                 onCoords={(exact, approx) => {
-                  setExactCoords(exact.lat !== 0 ? exact : null)
-                  setApproxCoords(approx.lat !== 0 ? approx : null)
+                  setPickupExact(exact.lat !== 0 ? exact : null)
+                  setPickupApprox(approx.lat !== 0 ? approx : null)
                 }}
               />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700">
+                  Instructions <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <textarea
+                  value={pickupInstructions}
+                  onChange={(e) => setPickupInstructions(e.target.value)}
+                  rows={2}
+                  placeholder="Ex : Sonner à l'interphone…"
+                  className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]"
+                />
+              </div>
             </div>
+          </Card>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Instructions <span className="text-gray-400 font-normal">(optionnel)</span>
-              </label>
-              <textarea
-                value={pickupInstructions}
-                onChange={(e) => setPickupInstructions(e.target.value)}
-                rows={2}
-                placeholder="Ex : Sonner à l'interphone, bâtiment B…"
-                className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]"
+          {/* Point de récupération */}
+          <Card>
+            <div className="flex items-center gap-2 mb-1">
+              <Home className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
+              <h2 className="text-sm font-semibold text-gray-700">Point de récupération</h2>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Où l'expéditeur récupère son colis. Adresse révélée après paiement.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Input
+                label="Adresse de récupération"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="45 avenue Victor Hugo"
+                helper="Masquée jusqu'au paiement confirmé"
               />
+              <MapPickerField
+                initialCity={destination}
+                onCityChange={setDeliveryCity}
+                onCoords={(exact, approx) => {
+                  setDeliveryExact(exact.lat !== 0 ? exact : null)
+                  setDeliveryApprox(approx.lat !== 0 ? approx : null)
+                }}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700">
+                  Instructions <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <textarea
+                  value={deliveryInstructions}
+                  onChange={(e) => setDeliveryInstructions(e.target.value)}
+                  rows={2}
+                  placeholder="Ex : Appeler à l'arrivée…"
+                  className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]"
+                />
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        {/* Actions */}
+        {/* ── Actions ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-4 pb-8">
           <Button type="submit" variant="primary" loading={mutation.isPending}>
             Publier le trajet
