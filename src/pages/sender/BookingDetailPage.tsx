@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, AlertCircle, ShieldCheck,
-  ExternalLink, Clock, Search, X,
+  ExternalLink, Clock, Search, X, MapPin, Home,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
@@ -17,6 +17,80 @@ import { formatAmount, formatDate } from '@/lib/utils'
 import { useAuthStore, isTraveler } from '@/store/authStore'
 import { PickupLocationCard } from '@/components/ui/PickupLocationCard'
 import client from '@/api/client'
+import type { PickupLocation } from '@/types'
+
+// ─── LocationRevealCard ────────────────────────────────────────────────────
+
+function LocationRevealCard({
+  label,
+  icon: Icon,
+  location,
+  isConfirmed,
+}: {
+  label:       string
+  icon:        React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  location:    PickupLocation | null | undefined
+  isConfirmed: boolean
+}) {
+  if (!location) return null
+
+  const mapsUrl = location.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address + ', ' + (location.city ?? ''))}`
+    : location.approximate_latitude
+      ? `https://www.google.com/maps?q=${location.approximate_latitude},${location.approximate_longitude}`
+      : null
+
+  return (
+    <Card className="mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</h2>
+      </div>
+
+      {isConfirmed && location.revealed ? (
+        // Adresse exacte révélée
+        <div className="flex flex-col gap-2">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-[10px] p-3 text-sm">
+            <p className="text-xs text-emerald-700 font-medium mb-1.5">✅ Adresse confirmée</p>
+            {mapsUrl ? (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                className="font-medium text-[#1B3A6B] hover:underline flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                {location.address ?? `${location.latitude}, ${location.longitude}`}
+              </a>
+            ) : (
+              <p className="font-medium text-gray-900">{location.address}</p>
+            )}
+            {location.city && <p className="text-gray-500 text-xs mt-0.5 ml-5">{location.city}</p>}
+            {location.instructions && (
+              <p className="text-xs text-gray-500 mt-1.5 ml-5">ℹ️ {location.instructions}</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        // Zone approximative
+        <div className="flex flex-col gap-2">
+          {location.approximate_latitude && (
+            <div className="bg-[#EBF4FF] rounded-[10px] p-3 text-sm">
+              <p className="text-xs text-[#1B3A6B] font-medium mb-1">📍 Zone approximative (~500m)</p>
+              <p className="text-gray-600 text-xs">
+                Ville : <span className="font-medium text-gray-900">{location.city}</span>
+              </p>
+              {!isConfirmed && (
+                <p className="text-xs text-gray-400 mt-1.5">
+                  L'adresse exacte sera révélée après confirmation du paiement.
+                </p>
+              )}
+            </div>
+          )}
+          {!location.approximate_latitude && (
+            <p className="text-sm text-gray-400 italic">Point de dépôt non défini par le voyageur.</p>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
 
 // ─── Banner component ──────────────────────────────────────────────────────
 
@@ -323,8 +397,22 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {/* ── Pickup Location ────────────────────────────────────────────── */}
-      {(isConfirmed || isTravelerUser) && (
+      {/* ── Pickup / Delivery Location ─────────────────────────────────── */}
+      <LocationRevealCard
+        label="📦 Point de dépôt colis"
+        icon={MapPin}
+        location={booking.trip?.pickup_location}
+        isConfirmed={isConfirmed}
+      />
+      <LocationRevealCard
+        label="🎯 Point de remise colis"
+        icon={Home}
+        location={booking.trip?.delivery_location}
+        isConfirmed={isConfirmed}
+      />
+
+      {/* ── Pickup Location legacy (traveler uniquement) ────────────────── */}
+      {isTravelerUser && (
         <PickupLocationCard
           bookingId={bookingId}
           isTraveler={isTravelerUser}

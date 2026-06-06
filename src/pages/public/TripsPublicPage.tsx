@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { Plane, ArrowLeft, X, Calendar } from 'lucide-react'
+import { Plane, ArrowLeft, X, Calendar, MapPin } from 'lucide-react'
 import { CityInputInline } from '@/components/ui/CitySelect'
 import toast from 'react-hot-toast'
 
@@ -11,12 +11,7 @@ import { createLuggage } from '@/api/luggages'
 import type { Trip } from '@/types'
 import { useAuthStore, isSender, isTraveler } from '@/store/authStore'
 import { formatDate, formatAmount } from '@/lib/utils'
-import {
-  Button,
-  Card,
-  EmptyState,
-  SkeletonList,
-} from '@/components/ui'
+import { Button, Card, EmptyState, SkeletonList } from '@/components/ui'
 
 // ─── Booking Modal ─────────────────────────────────────────────────────────
 
@@ -42,18 +37,18 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
       deliveryDate.setDate(deliveryDate.getDate() + 1)
 
       const luggage = await createLuggage({
-        trip_id:              trip.id,
+        trip_id:             trip.id,
         description,
-        weight_kg:            Math.round(kgReserved * 10),
-        length_cm:            40,
-        width_cm:             30,
-        height_cm:            20,
-        pickup_city:          trip.departure,
-        delivery_city:        trip.destination,
-        pickup_date:          tripDate,
-        delivery_date:        deliveryDate.toISOString().split('T')[0],
-        is_fragile:           false,
-        insurance_requested:  false,
+        weight_kg:           Math.round(kgReserved * 10),
+        length_cm:           40,
+        width_cm:            30,
+        height_cm:           20,
+        pickup_city:         trip.departure,
+        delivery_city:       trip.destination,
+        pickup_date:         tripDate,
+        delivery_date:       deliveryDate.toISOString().split('T')[0],
+        is_fragile:          false,
+        insurance_requested: false,
       })
 
       return createBooking({
@@ -74,37 +69,20 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
     },
   })
 
-  // Fermeture Escape
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose()
-  }
+  const handleKey = (e: React.KeyboardEvent) => { if (e.key === 'Escape') onClose() }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      onKeyDown={handleKey}
-      role="dialog"
-      aria-modal
-      aria-labelledby="booking-modal-title"
-    >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      onKeyDown={handleKey} role="dialog" aria-modal aria-labelledby="booking-modal-title">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
-
       <div className="relative w-full max-w-lg bg-white rounded-[20px] shadow-xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 id="booking-modal-title" className="text-base font-semibold text-gray-900">
-            Réserver ce trajet
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-            aria-label="Fermer"
-          >
+          <h2 id="booking-modal-title" className="text-base font-semibold text-gray-900">Réserver ce trajet</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" aria-label="Fermer">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Trip summary */}
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
           <div className="flex items-center gap-2 font-semibold text-gray-900 mb-1">
             <span>{trip.departure}</span>
@@ -118,97 +96,73 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
             <span className="text-gray-300" aria-hidden>·</span>
             <span>{maxKg.toFixed(1)} kg dispo</span>
           </div>
+
+          {/* Zone de dépôt approximative dans le modal */}
+          {trip.pickup_location && (
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
+              <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              <span>
+                Point de dépôt disponible à <strong>{trip.pickup_location.city}</strong>
+                {trip.pickup_location.revealed && trip.pickup_location.address
+                  ? ` — ${trip.pickup_location.address}`
+                  : ' (adresse exacte après paiement)'}
+              </span>
+            </div>
+          )}
+          {trip.delivery_location && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
+              <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              <span>
+                Point de remise disponible à <strong>{trip.delivery_location.city}</strong>
+                {trip.delivery_location.revealed && trip.delivery_location.address
+                  ? ` — ${trip.delivery_location.address}`
+                  : ' (adresse exacte après paiement)'}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Form */}
-        <form
-          onSubmit={(e) => { e.preventDefault(); mutation.mutate() }}
-          className="px-6 py-5 flex flex-col gap-4"
-        >
-          {/* Poids — slider */}
+        <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="px-6 py-5 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 select-none">
-              Poids réservé (kg)
-            </label>
+            <label className="text-sm font-medium text-gray-700 select-none">Poids réservé (kg)</label>
             <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min={0.5}
-                max={maxKg}
-                step={0.5}
-                value={kgReserved}
+              <input type="range" min={0.5} max={maxKg} step={0.5} value={kgReserved}
                 onChange={(e) => setKgReserved(Number(e.target.value))}
                 aria-label="Poids réservé en kg"
-                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
-              />
+                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
               <span className="min-w-[4.5rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
                 {kgReserved} kg
               </span>
             </div>
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>0.5 kg</span>
-              <span>{maxKg.toFixed(1)} kg</span>
-            </div>
+            <div className="flex justify-between text-xs text-gray-400"><span>0.5 kg</span><span>{maxKg.toFixed(1)} kg</span></div>
           </div>
 
-          {/* Description */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="description" className="text-sm font-medium text-gray-700">
               Description du colis <span className="text-red-500" aria-hidden>*</span>
             </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={3}
-              placeholder="Ex : vêtements, livres, électronique…"
-              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400"
-            />
+            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)}
+              required rows={3} placeholder="Ex : vêtements, livres, électronique…"
+              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
           </div>
 
-          {/* Commentaire */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="comment" className="text-sm font-medium text-gray-700">
               Commentaire <span className="text-gray-400 font-normal">(optionnel)</span>
             </label>
-            <textarea
-              id="comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={2}
-              placeholder="Instructions particulières…"
-              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400"
-            />
+            <textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)}
+              rows={2} placeholder="Instructions particulières…"
+              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
           </div>
 
-          {/* Total */}
           <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
             <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
-            <span className="text-lg font-bold text-[#1B3A6B] font-mono">
-              {formatAmount(totalCents)}
-            </span>
+            <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents)}</span>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              onClick={onClose}
-              disabled={mutation.isPending}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              className="flex-1"
-              loading={mutation.isPending}
-            >
-              Confirmer la réservation
-            </Button>
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
+            <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending}>Confirmer la réservation</Button>
           </div>
         </form>
       </div>
@@ -219,17 +173,19 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 // ─── Trip Card ─────────────────────────────────────────────────────────────
 
 interface TripCardProps {
-  trip:          Trip
-  onBook:        (trip: Trip) => void
-  canBook:       boolean
-  isLoggedIn:    boolean
+  trip:           Trip
+  onBook:         (trip: Trip) => void
+  canBook:        boolean
+  isLoggedIn:     boolean
   isTravelerUser: boolean
 }
 
 function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCardProps) {
-  const navigate   = useNavigate()
-  const kgDispo    = (trip.grams_disponible / 1000).toFixed(1)
-  const prixParKg  = (trip.price_per_kg / 100).toFixed(2)
+  const navigate  = useNavigate()
+  const kgDispo   = (trip.grams_disponible / 1000).toFixed(1)
+  const prixParKg = (trip.price_per_kg / 100).toFixed(2)
+  const hasPickup   = !!trip.pickup_location
+  const hasDelivery = !!trip.delivery_location
 
   return (
     <Card as="article" className="flex flex-col gap-4">
@@ -267,41 +223,47 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
         )}
       </div>
 
+      {/* Badges pickup/delivery */}
+      {(hasPickup || hasDelivery) && (
+        <div className="flex flex-col gap-1.5">
+          {hasPickup && (
+            <div className="flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-2.5 py-1.5">
+              <MapPin className="w-3 h-3 shrink-0" aria-hidden />
+              <span>📦 Dépôt à <strong>{trip.pickup_location!.city ?? trip.departure}</strong></span>
+            </div>
+          )}
+          {hasDelivery && (
+            <div className="flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-2.5 py-1.5">
+              <MapPin className="w-3 h-3 shrink-0" aria-hidden />
+              <span>🎯 Remise à <strong>{trip.delivery_location!.city ?? trip.destination}</strong></span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CTA */}
       {canBook && (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => onBook(trip)}
-          className="w-full mt-auto"
-        >
+        <Button variant="primary" size="sm" onClick={() => onBook(trip)} className="w-full mt-auto">
           Réserver
         </Button>
       )}
 
-      {/* FIX : "Voir ce trajet" → navigate vers le bon trip */}
       {!isLoggedIn && (
         <div className="flex flex-col gap-2 mt-auto">
-          <button
-            onClick={() => navigate(`/trips/${trip.id}`)}
-            className="w-full text-center text-[#1B3A6B] text-sm font-medium hover:underline"
-          >
+          <button onClick={() => navigate(`/trips/${trip.id}`)}
+            className="w-full text-center text-[#1B3A6B] text-sm font-medium hover:underline">
             Voir ce trajet
           </button>
-          <Link
-            to="/login"
-            className="w-full inline-block text-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-4 py-3 rounded-full transition-colors min-h-[48px] flex items-center justify-center"
-          >
+          <Link to="/login"
+            className="w-full inline-block text-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-medium px-4 py-3 rounded-full transition-colors min-h-[48px] flex items-center justify-center">
             Se connecter pour réserver
           </Link>
         </div>
       )}
 
       {isLoggedIn && isTravelerUser && (
-        <button
-          onClick={() => navigate(`/trips/${trip.id}`)}
-          className="w-full text-center text-[#1B3A6B] text-sm font-medium hover:underline mt-auto"
-        >
+        <button onClick={() => navigate(`/trips/${trip.id}`)}
+          className="w-full text-center text-[#1B3A6B] text-sm font-medium hover:underline mt-auto">
           Voir ce trajet
         </button>
       )}
@@ -312,30 +274,28 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function TripsPublicPage() {
-  const navigate      = useNavigate()
-  const user          = useAuthStore((s) => s.user)
-  const isLoggedIn    = user !== null
-  const canBook       = isLoggedIn && isSender(user!.role)
+  const navigate       = useNavigate()
+  const user           = useAuthStore((s) => s.user)
+  const isLoggedIn     = user !== null
+  const canBook        = isLoggedIn && isSender(user!.role)
   const isTravelerUser = isLoggedIn && isTraveler(user!.role)
 
   const [searchParams] = useSearchParams()
-
   const [searchDeparture,   setSearchDeparture]   = useState(searchParams.get('departure')   ?? '')
   const [searchDestination, setSearchDestination] = useState(searchParams.get('destination') ?? '')
   const [searchDate,        setSearchDate]        = useState(searchParams.get('date')        ?? '')
-
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
 
   const { data: trips, isLoading, isError } = useQuery<Trip[]>({
-    queryKey: ['trips-public'],
-    queryFn:  getTrips,
+    queryKey:  ['trips-public'],
+    queryFn:   getTrips,
     staleTime: 30_000,
   })
 
   const filteredTrips = (trips ?? []).filter((trip) => {
     const dep  = searchDeparture.toLowerCase()
     const dest = searchDestination.toLowerCase()
-    if (dep  && !trip.departure.toLowerCase().includes(dep))   return false
+    if (dep  && !trip.departure.toLowerCase().includes(dep))    return false
     if (dest && !trip.destination.toLowerCase().includes(dest)) return false
     if (searchDate && trip.date && !trip.date.startsWith(searchDate)) return false
     return true
@@ -351,131 +311,71 @@ export default function TripsPublicPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Navbar */}
       <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
-        <button
-          onClick={() => navigate('/')}
+        <button onClick={() => navigate('/')}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors min-h-[44px]"
-          aria-label="Retour à l'accueil"
-        >
+          aria-label="Retour à l'accueil">
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Retour
         </button>
-
-        {/* FIX : logo cliquable → Link to="/" */}
         <Link to="/" aria-label="Accueil Safe Move">
           <img src="/logo-nav-hori.png" alt="Safe Move" className="h-10" />
         </Link>
-
         {!isLoggedIn ? (
-          <Link
-            to="/login"
-            className="text-sm font-medium text-[#1B3A6B] hover:underline min-h-[44px] flex items-center"
-          >
+          <Link to="/login" className="text-sm font-medium text-[#1B3A6B] hover:underline min-h-[44px] flex items-center">
             Se connecter
           </Link>
         ) : (
-          <Link
-            to={isSender(user!.role) ? '/sender' : '/traveler'}
-            className="text-sm font-medium text-[#1B3A6B] hover:underline min-h-[44px] flex items-center"
-          >
+          <Link to={isSender(user!.role) ? '/sender' : '/traveler'}
+            className="text-sm font-medium text-[#1B3A6B] hover:underline min-h-[44px] flex items-center">
             Mon espace
           </Link>
         )}
       </nav>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-
-        {/* Header + Filtres */}
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Trajets disponibles</h1>
-          <p className="text-gray-500 mt-2 text-sm">
-            Trouvez un voyageur partant vers votre destination
-          </p>
+          <p className="text-gray-500 mt-2 text-sm">Trouvez un voyageur partant vers votre destination</p>
 
-          {/* Filtres */}
           <div className="mt-6 bg-white border border-gray-200 rounded-[20px] p-4 flex flex-col sm:flex-row gap-3">
             <div className="flex items-center flex-1 border border-gray-200 rounded-[10px] px-4 bg-gray-50 min-h-[48px]">
-              <CityInputInline
-                value={searchDeparture}
-                onChange={setSearchDeparture}
-                placeholder="Ville de départ"
-              />
+              <CityInputInline value={searchDeparture} onChange={setSearchDeparture} placeholder="Ville de départ" />
             </div>
-
             <div className="flex items-center flex-1 border border-gray-200 rounded-[10px] px-4 bg-gray-50 min-h-[48px]">
-              <CityInputInline
-                value={searchDestination}
-                onChange={setSearchDestination}
-                placeholder="Destination"
-              />
+              <CityInputInline value={searchDestination} onChange={setSearchDestination} placeholder="Destination" />
             </div>
-
             <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-[10px] px-4 py-3 bg-gray-50 min-h-[48px]">
               <Calendar className="h-4 w-4 text-gray-400 shrink-0" aria-hidden />
-              <input
-                type="date"
-                value={searchDate}
-                onChange={(e) => setSearchDate(e.target.value)}
-                aria-label="Date de départ"
-                className="bg-transparent text-sm text-gray-700 outline-none w-full"
-              />
+              <input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)}
+                aria-label="Date de départ" className="bg-transparent text-sm text-gray-700 outline-none w-full" />
             </div>
-
-            <Button
-              variant="primary"
-              onClick={handleSearch}
-              className="sm:self-stretch px-6 rounded-[10px]"
-            >
+            <Button variant="primary" onClick={handleSearch} className="sm:self-stretch px-6 rounded-[10px]">
               Rechercher
             </Button>
           </div>
 
-          {/* Reset filtres */}
           {(searchDeparture || searchDestination || searchDate) && (
-            <button
-              onClick={() => {
-                setSearchDeparture('')
-                setSearchDestination('')
-                setSearchDate('')
-                navigate('/trips')
-              }}
-              className="mt-3 text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-            >
+            <button onClick={() => { setSearchDeparture(''); setSearchDestination(''); setSearchDate(''); navigate('/trips') }}
+              className="mt-3 text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
               <X className="h-3 w-3" aria-hidden />
               Réinitialiser les filtres
             </button>
           )}
         </div>
 
-        {/* États */}
         {isLoading && <SkeletonList count={6} />}
-
         {isError && (
           <div className="text-center py-16">
             <p className="text-red-500 font-medium">Impossible de charger les trajets.</p>
             <p className="text-gray-400 text-sm mt-1">Vérifiez votre connexion et réessayez.</p>
           </div>
         )}
-
         {!isLoading && !isError && filteredTrips.length === 0 && (
-          <EmptyState
-            icon={Plane}
-            title="Aucun trajet trouvé"
+          <EmptyState icon={Plane} title="Aucun trajet trouvé"
             description="Aucun trajet ne correspond à votre recherche. Essayez d'autres critères."
-            action={
-              <Button variant="secondary" size="sm" onClick={() => {
-                setSearchDeparture('')
-                setSearchDestination('')
-                setSearchDate('')
-              }}>
-                Voir tous les trajets
-              </Button>
-            }
-          />
+            action={<Button variant="secondary" size="sm" onClick={() => { setSearchDeparture(''); setSearchDestination(''); setSearchDate('') }}>Voir tous les trajets</Button>} />
         )}
-
         {!isLoading && !isError && filteredTrips.length > 0 && (
           <>
             <p className="text-sm text-gray-500 mb-4">
@@ -483,23 +383,15 @@ export default function TripsPublicPage() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredTrips.map((trip) => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  onBook={setSelectedTrip}
-                  canBook={canBook}
-                  isLoggedIn={isLoggedIn}
-                  isTravelerUser={isTravelerUser}
-                />
+                <TripCard key={trip.id} trip={trip} onBook={setSelectedTrip}
+                  canBook={canBook} isLoggedIn={isLoggedIn} isTravelerUser={isTravelerUser} />
               ))}
             </div>
           </>
         )}
       </div>
 
-      {selectedTrip && (
-        <BookingModal trip={selectedTrip} onClose={() => setSelectedTrip(null)} />
-      )}
+      {selectedTrip && <BookingModal trip={selectedTrip} onClose={() => setSelectedTrip(null)} />}
     </div>
   )
 }
