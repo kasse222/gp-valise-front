@@ -151,14 +151,14 @@ export default function CreateTripPage() {
           <Card>
             <div className="flex items-center gap-2 mb-1">
               <Package className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
-              <h2 className="text-sm font-semibold text-gray-700">Point de dépôt</h2>
+              <h2 className="text-sm font-semibold text-gray-700">📦 Où récupérer le colis ?</h2>
             </div>
             <p className="text-xs text-gray-500 mb-4">
               Où l'expéditeur dépose son colis. Adresse révélée après paiement.
             </p>
             <div className="flex flex-col gap-3">
               <Input
-                label="Adresse de dépôt"
+                label="Adresse de récupération du colis"
                 value={pickupAddress}
                 onChange={(e) => setPickupAddress(e.target.value)}
                 placeholder="12 rue de la Paix"
@@ -191,14 +191,14 @@ export default function CreateTripPage() {
           <Card>
             <div className="flex items-center gap-2 mb-1">
               <Home className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
-              <h2 className="text-sm font-semibold text-gray-700">Point de récupération</h2>
+              <h2 className="text-sm font-semibold text-gray-700">🎯 Où remettre le colis ?</h2>
             </div>
             <p className="text-xs text-gray-500 mb-4">
               Où l'expéditeur récupère son colis. Adresse révélée après paiement.
             </p>
             <div className="flex flex-col gap-3">
               <Input
-                label="Adresse de récupération"
+                label="Adresse de remise du colis"
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder="45 avenue Victor Hugo"
