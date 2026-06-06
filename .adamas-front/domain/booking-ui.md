@@ -1,133 +1,128 @@
 # Booking UI — GP-Valise Frontend
 
-## Endpoints utilisés
+## Flow complet
 
-```txt
-GET  /api/v1/bookings          → liste bookings utilisateur connecté
-GET  /api/v1/bookings/:id      → détail booking avec relations
+```
+Sender crée booking
+    ↓
+PENDING_APPROVAL
+    → Sender voit "En attente d'approbation du voyageur"
+    → Bouton payer DÉSACTIVÉ
+
+Traveler approuve
+    ↓
+EN_PAIEMENT
+    → Sender reçoit notification email
+    → Sender peut payer
+    → Timer payment_expires_at visible
+
+Sender paie
+    ↓
+CONFIRMEE
+    → Adresse exacte pickup révélée
+    → Email confirmation envoyé
+
+Traveler livre
+    ↓
+LIVREE
+    → Escrow 48h visible
+    → Sender peut ouvrir litige
+
+Escrow libéré
+    ↓
+TERMINE
 ```
 
-## Comportement GetUserBookings
+---
 
-```txt
-SENDER   → retourne ses propres bookings (user_id = auth)
-TRAVELER → retourne les bookings des trips qui lui appartiennent
+## Sender Dashboard
+
+### Section "Mes réservations"
+
+Filtres par statut (badges cliquables) :
+
+- Actives (PENDING_APPROVAL + EN_PAIEMENT + CONFIRMEE + LIVREE)
+- En attente (PENDING_APPROVAL)
+- À payer (EN_PAIEMENT)
+- Confirmées (CONFIRMEE + LIVREE)
+- Terminées (TERMINE + REMBOURSEE)
+- Annulées (ANNULE + EXPIREE + DECLINED_BY_TRAVELER)
+
+### Affichage par statut
+
+| Statut               | Texte affiché                             | Action disponible                  |
+| -------------------- | ----------------------------------------- | ---------------------------------- |
+| PENDING_APPROVAL     | "En attente d'approbation"                | Annuler                            |
+| EN_PAIEMENT          | "Approuvé — procéder au paiement" + timer | Payer / Annuler                    |
+| CONFIRMEE            | "Confirmé"                                | Voir adresse dépôt / Ouvrir litige |
+| LIVREE               | "Livré — escrow en cours"                 | Ouvrir litige                      |
+| TERMINE              | "Terminé"                                 | —                                  |
+| DECLINED_BY_TRAVELER | "Refusé par le voyageur"                  | Rechercher nouveau trajet          |
+| EXPIREE              | "Délai de paiement expiré"                | —                                  |
+| ANNULE               | "Annulé"                                  | —                                  |
+| EN_LITIGE            | "Litige en cours"                         | Voir litige                        |
+| REMBOURSEE           | "Remboursé"                               | —                                  |
+
+---
+
+## Traveler Dashboard
+
+### Section "Demandes en attente"
+
+```
+Nouvelle section prioritaire en haut du dashboard
+Liste des bookings PENDING_APPROVAL sur ses trips
+Chaque carte affiche :
+  - Expéditeur (nom)
+  - Trajet concerné
+  - Poids réservé + prix
+  - Date de la demande
+  - Boutons : Accepter / Refuser
 ```
 
-## BookingResource — champs clés UI
+### Section "Mes trajets"
 
-```ts
-{
-  id: number
-  status: string          // valeur enum ex: 'confirmee'
-  status_label: string    // ex: 'Confirmée'
-  status_color: string    // Filament color ex: 'blue' — NE PAS utiliser en Tailwind
-  is_final: boolean       // true = pas d'action possible
-
-  kg_reserved: number     // grammes — afficher: (kg_reserved / 1000).toFixed(1) + ' kg'
-  comment: string | null
-
-  confirmed_at: string | null
-  completed_at: string | null
-  cancelled_at: string | null
-  payment_expires_at: string | null   // ISO string
-  expired_at: string | null
-
-  trip: TripResource | null
-  user: UserResource | null
-  items: BookingItemResource[]
-  status_history: BookingStatusHistoryResource[]
-}
+```
+Filtrer par trip.user_id === user.id
+Ne pas afficher les trajets des autres voyageurs
 ```
 
-⚠️ `status_color` = couleur Filament ('blue', 'green', 'red'...)
-→ Utiliser `bookingStatusColor[booking.status]` de utils.ts pour Tailwind
+### Affichage par statut booking
 
-## Affichage kg_reserved
+| Statut           | Texte affiché             | Action                              |
+| ---------------- | ------------------------- | ----------------------------------- |
+| PENDING_APPROVAL | "Demande en attente"      | Accepter / Refuser                  |
+| EN_PAIEMENT      | "En attente de paiement"  | —                                   |
+| CONFIRMEE        | "Réservation confirmée"   | Définir point dépôt / Marquer livré |
+| LIVREE           | "Livré — escrow en cours" | —                                   |
+| TERMINE          | "Terminé — payout reçu"   | —                                   |
 
-```ts
-// grammes → kg
-const displayKg = (grams: number) => (grams / 1000).toFixed(1) + " kg";
+---
 
-// Exemple: 5000 → '5.0 kg'
+## Pickup Location
+
+### Avant CONFIRMEE
+
+```
+Afficher carte avec point approximatif (approximate_lat/lng)
+Message : "L'adresse exacte sera révélée après confirmation du paiement"
+Rayon approximatif visible sur la carte (~500m)
 ```
 
-## Actions par statut (SENDER)
+### Après CONFIRMEE
 
-```txt
-en_attente       → aucune action
-en_paiement      → aucune action (attente paiement PSP)
-paiement_echoue  → aucune action
-confirmee        → bouton "Ouvrir un litige"
-livree           → bouton "Ouvrir un litige"
-en_litige        → voir dispute
-suspendue        → lecture seule
-annule           → lecture seule (is_final)
-remboursee       → lecture seule (is_final)
-expiree          → lecture seule (is_final)
-termine          → lecture seule (is_final)
+```
+Afficher adresse exacte
+Afficher coordonnées exactes sur la carte
+Afficher instructions si présentes
 ```
 
-## Actions par statut (TRAVELER)
+---
 
-```txt
-en_paiement → attente
-confirmee   → livraison gérée via Filament admin
-livree      → escrow en cours
-termine     → payout reçu
-```
+## Règles UI critiques
 
-## canEnterDispute — statuts éligibles
-
-```txt
-CONFIRMEE → oui
-LIVREE    → oui
-Autres    → non
-```
-
-Condition backend supplémentaire :
-
-```txt
-- pas de PAYOUT COMPLETED existant
-- pas de REFUND existant
-- disputed_at === null
-```
-
-## Ouvrir un litige
-
-```txt
-⚠️ Route inexistante côté API MVP
-Pas de POST /api/v1/bookings/:id/open-dispute
-
-→ Cette action n'est pas exposée en API publique
-→ Afficher statut EN_LITIGE après action Filament admin
-→ Phase 7 : ajouter route API publique
-```
-
-## payment_expires_at
-
-```ts
-// Afficher countdown si statut en_paiement
-const isExpired = new Date(booking.payment_expires_at) < new Date();
-
-// Si expiré → afficher badge "Expiré"
-// Si non → afficher "Expire dans X minutes"
-```
-
-## Pagination
-
-```txt
-GET /api/v1/bookings retourne pagination Laravel
-{
-  data: BookingResource[]
-  links: { first, last, prev, next }
-  meta: { current_page, last_page, per_page, total }
-}
-```
-
-## QueryKey TanStack Query
-
-```ts
-queryKey: ["bookings"]; // liste
-queryKey: ["booking", id]; // détail
-```
+- Bouton "Payer" désactivé si status !== EN_PAIEMENT
+- Timer payment_expires_at affiché en compte à rebours si EN_PAIEMENT
+- Adresse dépôt masquée si booking non CONFIRMEE
+- Litige disponible uniquement si CONFIRMEE ou LIVREE
+- Messages d'erreur tous en français

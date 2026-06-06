@@ -48,7 +48,7 @@ token: string
 
 ```txt
 POST /api/v1/login
-→ isPublicFrontendRole check
+→ isSender check
 → redirect /sender
 ```
 
@@ -57,15 +57,14 @@ POST /api/v1/login
 ```txt
 GET /api/v1/bookings
 → stats calculées côté front depuis la liste
-→ compte par statut : CONFIRMEE, LIVREE, EN_LITIGE
+→ compte par statut : PENDING_APPROVAL, EN_PAIEMENT, CONFIRMEE, LIVREE, EN_LITIGE
 ```
 
 ### Liste réservations /sender/bookings
 
 ```txt
 GET /api/v1/bookings
-→ liste paginée
-→ filtres statut côté front
+→ filtres statut côté front (badges cliquables)
 → badges BookingStatusBadge
 → loading / error / empty states
 → clic → /sender/bookings/:id
@@ -75,28 +74,67 @@ GET /api/v1/bookings
 
 ```txt
 GET /api/v1/bookings/:id
-→ statut + badge
-→ trajet (départ → destination)
-→ voyageur email
-→ items réservés
-→ transactions liste
-→ bouton "Ouvrir litige" si statut CONFIRMEE | LIVREE
+
+Affichage selon statut :
+
+PENDING_APPROVAL
+  → "En attente d'approbation du voyageur"
+  → bouton payer DÉSACTIVÉ
+  → bouton annuler
+
+EN_PAIEMENT
+  → timer countdown payment_expires_at
+  → bouton "Payer"
+  → bouton annuler
+
+CONFIRMEE
+  → GET /api/v1/bookings/:id/pickup-location
+  → adresse exacte si revealed: true
+  → bouton "Ouvrir un litige"
+
+LIVREE
+  → escrow en cours
+  → bouton "Ouvrir un litige"
+
+EN_LITIGE
+  → GET /api/v1/disputes/:dispute_id
+  → messages chronologiques
+  → formulaire ajout message
+
+DECLINED_BY_TRAVELER
+  → "Refusée par le voyageur"
+  → lien "Rechercher un autre trajet"
+
+TERMINE / REMBOURSEE / ANNULE / EXPIREE
+  → lecture seule
 ```
 
 ### Ouvrir litige
 
 ```txt
-POST /api/v1/bookings/:id/open-dispute
-⚠️  Route inexistante — à créer backend Phase 7
-En attendant : afficher statut seulement
+POST /api/v1/bookings/:id/dispute
+→ textarea raison (min 10 chars)
+→ visible si statut CONFIRMEE ou LIVREE
 ```
 
 ### Mes litiges /sender/disputes
 
 ```txt
-GET /api/v1/bookings?status=en_litige
-→ filtre bookings EN_LITIGE
-→ pas de route /disputes dédiée côté API MVP
+Filtrer GET /api/v1/bookings où status === en_litige
+→ clic → /sender/bookings/:id (section dispute)
+```
+
+### KYC /sender/kyc
+
+```txt
+GET /api/v1/kyc → statut actuel
+POST /api/v1/kyc → soumettre photos
+
+Affichage selon statut :
+null    → formulaire soumission
+PENDING → "En cours de vérification"
+APPROVED → badge "Vérifié"
+REJECTED → raison + bouton resoumettre
 ```
 
 ---
@@ -107,22 +145,40 @@ GET /api/v1/bookings?status=en_litige
 
 ```txt
 POST /api/v1/login
+→ isTraveler check
 → redirect /traveler
 ```
 
 ### Dashboard /traveler
 
 ```txt
-GET /api/v1/trips
-→ stats calculées côté front
-→ trips actifs, bookings reçus
+GET /api/v1/bookings
+→ filtrer bookings sur ses trips (trip.user_id === user.id)
+→ Section "Demandes en attente" : statut PENDING_APPROVAL
+→ stats : trips actifs, demandes en attente, bookings confirmés
+```
+
+### Demandes en attente
+
+```txt
+Section prioritaire en haut du dashboard
+
+GET /api/v1/bookings → filter status === pending_approval
+
+Chaque carte :
+  - Expéditeur (nom)
+  - Trajet concerné
+  - Poids réservé + prix
+  - Date de la demande
+  - Bouton "Accepter" → POST /api/v1/bookings/:id/approve
+  - Bouton "Refuser"  → POST /api/v1/bookings/:id/decline
 ```
 
 ### Mes trajets /traveler/trips
 
 ```txt
 GET /api/v1/trips
-→ liste trajets du voyageur connecté
+→ filtrer par trip.user_id === user.id côté front
 → capacité, statut, destination
 → clic → /traveler/trips/:id
 ```
@@ -131,39 +187,68 @@ GET /api/v1/trips
 
 ```txt
 GET /api/v1/trips/:id
-→ infos trajet
-→ bookings associés via GET /api/v1/bookings
-→ payout estimé
+→ bookings associés
+→ payout estimé par booking confirmé
+
+Par booking CONFIRMEE :
+  → GET /api/v1/bookings/:id/pickup-location
+  → si pas défini : bouton "Définir le point de dépôt"
+  → formulaire : adresse, coordonnées, instructions
+  → POST /api/v1/bookings/:id/pickup-location
+
+Par booking CONFIRMEE/LIVREE :
+  → bouton "Marquer comme livré" → POST /api/v1/bookings/:id/complete
 ```
 
 ### Paiements /traveler/payments
 
 ```txt
-GET /api/v1/transactions
-⚠️  Middleware verified_user + kyc requis
-→ filtre type=payout côté front
+GET /api/v1/transactions ← verified_user + kyc requis
+→ filtrer type === payout
 → montants en centimes → formatAmount()
 ```
 
 ---
 
-## Routes API réelles confirmées
+## Routes API confirmées ✅
 
 ```txt
 ✅ POST   /api/v1/login
-✅ GET    /api/v1/me
 ✅ POST   /api/v1/logout
-✅ GET    /api/v1/bookings
-✅ GET    /api/v1/bookings/:id
+✅ GET    /api/v1/me
+
 ✅ GET    /api/v1/trips
 ✅ GET    /api/v1/trips/:id
-✅ GET    /api/v1/transactions     ← verified_user requis
-✅ GET    /api/v1/payments         ← verified_user + kyc requis
+✅ POST   /api/v1/trips                          (TRAVELER)
+✅ PUT    /api/v1/trips/:id                      (TRAVELER)
+✅ DELETE /api/v1/trips/:id                      (TRAVELER)
 
-❌ GET    /api/v1/dashboard/sender   → n'existe pas
-❌ GET    /api/v1/dashboard/traveler → n'existe pas
-❌ GET    /api/v1/disputes           → n'existe pas
-❌ POST   /api/v1/bookings/:id/dispute → n'existe pas (Phase 7)
+✅ GET    /api/v1/bookings
+✅ GET    /api/v1/bookings/:id
+✅ POST   /api/v1/bookings                       (SENDER)
+✅ DELETE /api/v1/bookings/:id                   (SENDER)
+✅ POST   /api/v1/bookings/:id/approve           (TRAVELER)
+✅ POST   /api/v1/bookings/:id/decline           (TRAVELER)
+✅ POST   /api/v1/bookings/:id/pay               (SENDER)
+✅ POST   /api/v1/bookings/:id/confirm           (TRAVELER)
+✅ POST   /api/v1/bookings/:id/complete          (TRAVELER)
+✅ POST   /api/v1/bookings/:id/cancel            (SENDER|TRAVELER)
+✅ POST   /api/v1/bookings/:id/dispute           (SENDER)
+
+✅ GET    /api/v1/bookings/:id/pickup-location
+✅ POST   /api/v1/bookings/:id/pickup-location   (TRAVELER)
+
+✅ GET    /api/v1/disputes/:id
+✅ GET    /api/v1/disputes/:id/messages
+✅ POST   /api/v1/disputes/:id/messages
+
+✅ GET    /api/v1/kyc
+✅ POST   /api/v1/kyc
+
+✅ GET    /api/v1/transactions                   (verified_user)
+✅ GET    /api/v1/payments                       (verified_user + kyc)
+
+✅ POST   /api/v1/waitlist                       (public)
 ```
 
 ---
@@ -171,11 +256,11 @@ GET /api/v1/transactions
 ## Contraintes middleware à gérer
 
 ```txt
-transactions → verified_user requis
-  → si 403 : afficher message "Vérification email requise"
+transactions / payments → verified_user requis
+  → si 403 : "Vérification requise"
 
-payments → verified_user + kyc requis
-  → si 403 : afficher message "KYC requis"
+payments → kyc requis
+  → si 403 : "KYC requis — soumettre vos documents"
 ```
 
 ---
@@ -198,7 +283,7 @@ ADMIN / SUPER_ADMIN     → accès refusé → /login
 Chaque page gère obligatoirement :
 
 ```txt
-loading → <Spinner />
+loading → <Spinner /> ou skeleton
 error   → message + bouton retry
 empty   → message clair + action suggérée
 success → données affichées
@@ -210,19 +295,24 @@ Interdits :
 - écran vide pendant fetch
 - useEffect pour fetch
 - données mockées en production
+- texte en anglais dans l'UI
 ```
 
 ---
 
-## TanStack Query — hooks prévus
+## TanStack Query — hooks
 
 ```txt
 src/hooks/
-  useBookings.ts      → GET /api/v1/bookings
-  useBooking.ts       → GET /api/v1/bookings/:id
-  useTrips.ts         → GET /api/v1/trips
-  useTrip.ts          → GET /api/v1/trips/:id
-  useTransactions.ts  → GET /api/v1/transactions
+  useBookings.ts            → GET /api/v1/bookings
+  useBooking.ts             → GET /api/v1/bookings/:id
+  useTrips.ts               → GET /api/v1/trips
+  useTrip.ts                → GET /api/v1/trips/:id
+  useTransactions.ts        → GET /api/v1/transactions
+  usePickupLocation.ts      → GET /api/v1/bookings/:id/pickup-location
+  useDispute.ts             → GET /api/v1/disputes/:id
+  useDisputeMessages.ts     → GET /api/v1/disputes/:id/messages
+  useKyc.ts                 → GET /api/v1/kyc
 ```
 
 ---
