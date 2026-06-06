@@ -227,4 +227,50 @@ Le nom technique du repo et des packages reste `gp-valise-front`.
 
 ### Statut
 
-✅ actif
+## ✅ actif
+
+## [2026-06] — Refonte frontend complète
+
+### Décision
+
+Refonte UI/UX complète après validation produit (66 utilisateurs, feedback Sileye).
+
+### Raisons
+
+- UX insuffisante pour le grand public
+- Nouveaux flows backend à intégrer (PENDING_APPROVAL, pickup location, dispute, KYC)
+- Mobile-first non respecté actuellement
+- Feedback utilisateur clair sur les blocages
+
+### Périmètre
+
+Pages prioritaires :
+
+1. Landing page
+2. Login / Register
+3. Trips public
+4. Sender dashboard (PENDING_APPROVAL flow)
+5. Traveler dashboard (demandes en attente)
+6. Booking detail (pickup location, dispute)
+7. KYC form
+
+### Corrections feedback Sileye
+
+- "Voir ce trajet" → ouvre le bon trajet
+- Logo Trip → redirige accueil
+- Badges → filtrent la liste bookings
+- Mes trajets voyageur → filtre par user connecté
+- Messages d'erreur → tout en français
+- Validation téléphone inscription
+- "Devenir transporteur" → pré-sélectionne Voyageur
+
+### Contraintes
+
+- Stack conservée (React 19 + TypeScript + TanStack Query v5 + Zustand + Tailwind CSS 4)
+- Mobile-first obligatoire
+- FR uniquement
+- Identité Safe Move conservée (#1B3A6B)
+
+### Statut
+
+⏳
