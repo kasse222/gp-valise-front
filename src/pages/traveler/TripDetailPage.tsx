@@ -91,16 +91,19 @@ interface LocationSectionProps {
   existingAddress?: string | null
   existingCity?:    string | null
   existingInstructions?: string | null
+  hasActiveBookings?: boolean
 }
 
-function LocationSection({ tripId, type, existingAddress, existingCity, existingInstructions }: LocationSectionProps) {
+function LocationSection({
+  tripId, type, existingAddress, existingCity, existingInstructions, hasActiveBookings = false,
+}: LocationSectionProps) {
   const queryClient  = useQueryClient()
+  const [editing,      setEditing]      = useState(false)
   const [address,      setAddress]      = useState(existingAddress      ?? '')
   const [city,         setCity]         = useState(existingCity         ?? '')
   const [exactCoords,  setExactCoords]  = useState<Coords | null>(null)
   const [approxCoords, setApproxCoords] = useState<Coords | null>(null)
   const [instructions, setInstructions] = useState(existingInstructions ?? '')
-  const [open,         setOpen]         = useState(!existingAddress)
 
   const mutation = useMutation({
     mutationFn: () => updateTrip(tripId, type === 'pickup' ? {
@@ -123,27 +126,54 @@ function LocationSection({ tripId, type, existingAddress, existingCity, existing
     onSuccess: () => {
       toast.success('Point enregistré.')
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] })
-      setOpen(false)
+      setEditing(false)
     },
     onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message ?? 'Une erreur est survenue.')
     },
   })
 
-  // Vue résumé si déjà défini
-  if (!open && existingAddress) {
+  // ── Pas encore défini ────────────────────────────────────────────────
+  if (!existingAddress && !editing) {
     return (
-      <div className="flex items-start justify-between gap-3">
-        <div className="text-sm">
-          <p className="font-medium text-gray-900">{existingAddress}</p>
-          <p className="text-gray-500 text-xs mt-0.5">{existingCity}</p>
-          {existingInstructions && <p className="text-xs text-gray-400 mt-1">ℹ️ {existingInstructions}</p>}
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>Modifier</Button>
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-gray-400 italic">Non défini lors de la création du trajet.</p>
+        {!hasActiveBookings && (
+          <button type="button" onClick={() => setEditing(true)}
+            className="self-start text-xs text-[#1B3A6B] font-medium hover:underline">
+            + Ajouter maintenant
+          </button>
+        )}
       </div>
     )
   }
 
+  // ── Vue lecture seule ────────────────────────────────────────────────
+  if (!editing && existingAddress) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="bg-gray-50 rounded-[10px] p-3 text-sm">
+          <p className="font-medium text-gray-900">{existingAddress}</p>
+          <p className="text-gray-500 text-xs mt-0.5">{existingCity}</p>
+          {existingInstructions && (
+            <p className="text-xs text-gray-400 mt-1.5">ℹ️ {existingInstructions}</p>
+          )}
+        </div>
+        {hasActiveBookings ? (
+          <p className="text-xs text-amber-600 flex items-center gap-1.5">
+            ⚠ Modification impossible — des réservations actives existent sur ce trajet.
+          </p>
+        ) : (
+          <button type="button" onClick={() => setEditing(true)}
+            className="self-start text-xs text-[#1B3A6B] font-medium hover:underline">
+            Modifier
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // ── Formulaire édition ───────────────────────────────────────────────
   return (
     <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="flex flex-col gap-4">
       <MapPickerField
@@ -155,25 +185,17 @@ function LocationSection({ tripId, type, existingAddress, existingCity, existing
           setApproxCoords(approx.lat !== 0 ? approx : null)
         }}
       />
-
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-gray-600">
           Instructions <span className="text-gray-400">(optionnel)</span>
         </label>
-        <input
-          value={instructions}
-          onChange={(e) => setInstructions(e.target.value)}
+        <input value={instructions} onChange={(e) => setInstructions(e.target.value)}
           placeholder="Ex : Sonner à l'interphone…"
-          className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]"
-        />
+          className="w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
       </div>
-
       <div className="flex gap-2">
-        {existingAddress && (
-          <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
-        )}
-        <Button type="submit" variant="primary" size="sm" loading={mutation.isPending}
-          disabled={!address || !city}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+        <Button type="submit" variant="primary" size="sm" loading={mutation.isPending} disabled={!address || !city}>
           Enregistrer
         </Button>
       </div>
@@ -199,9 +221,12 @@ export default function TripDetailPage() {
     )
   }
 
-  const bookings     = (allBookings ?? []).filter((b) => b.trip_id === tripId)
-  const pendingCount = bookings.filter((b) => b.status === 'pending_approval').length
-  const tripDate     = trip.date ? trip.date.split('-').reverse().join('/') : null
+  const bookings         = (allBookings ?? []).filter((b) => b.trip_id === tripId)
+  const pendingCount     = bookings.filter((b) => b.status === 'pending_approval').length
+  const hasActiveBookings = bookings.some((b) =>
+    ['confirmee', 'livree', 'en_paiement', 'pending_approval'].includes(b.status)
+  )
+  const tripDate = trip.date ? trip.date.split('-').reverse().join('/') : null
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
@@ -253,6 +278,7 @@ export default function TripDetailPage() {
           existingAddress={trip.pickup_address}
           existingCity={trip.pickup_city}
           existingInstructions={trip.pickup_instructions}
+          hasActiveBookings={hasActiveBookings}
         />
       </Card>
 
@@ -268,6 +294,7 @@ export default function TripDetailPage() {
           existingAddress={trip.delivery_address}
           existingCity={trip.delivery_city}
           existingInstructions={trip.delivery_instructions}
+          hasActiveBookings={hasActiveBookings}
         />
       </Card>
 
