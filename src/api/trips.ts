@@ -13,7 +13,7 @@ export async function getTrips(): Promise<Trip[]> {
 }
 
 export async function getTrip(id: number): Promise<Trip> {
-  const { data } = await publicClient.get<{ data: Trip }>(`/trips/${id}`)
+  const { data } = await client.get<{ data: Trip }>(`/trips/${id}`)
   return data.data
 }
 

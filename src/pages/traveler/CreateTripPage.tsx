@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -30,17 +30,21 @@ export default function CreateTripPage() {
 
   // ── Pickup ───────────────────────────────────────────────────────────
   const [pickupAddress,      setPickupAddress]      = useState('')
-  const [pickupCity,         setPickupCity]         = useState('')
+  const [pickupCity,         setPickupCity]         = useState(departure)
   const [pickupExact,        setPickupExact]        = useState<Coords | null>(null)
   const [pickupApprox,       setPickupApprox]       = useState<Coords | null>(null)
   const [pickupInstructions, setPickupInstructions] = useState('')
 
   // ── Delivery ─────────────────────────────────────────────────────────
   const [deliveryAddress,      setDeliveryAddress]      = useState('')
-  const [deliveryCity,         setDeliveryCity]         = useState('')
+  const [deliveryCity,         setDeliveryCity]         = useState(destination)
   const [deliveryExact,        setDeliveryExact]        = useState<Coords | null>(null)
   const [deliveryApprox,       setDeliveryApprox]       = useState<Coords | null>(null)
   const [deliveryInstructions, setDeliveryInstructions] = useState('')
+
+  // Sync pickup/delivery city avec departure/destination
+  useEffect(() => { if (departure)   setPickupCity(departure)   }, [departure])
+  useEffect(() => { if (destination) setDeliveryCity(destination) }, [destination])
 
   const mutation = useMutation({
     mutationFn: createTrip,
@@ -63,20 +67,20 @@ export default function CreateTripPage() {
       capacity:     Math.round(Number(availableKg) * 1000),
       price_per_kg: Math.round(Number(pricePerKg) * 100),
       type_trip:    typeTrip,
-      ...(pickupAddress && pickupCity ? {
-        pickup_address:          pickupAddress,
-        pickup_city:             pickupCity,
-        pickup_latitude:         pickupExact?.lat,
-        pickup_longitude:        pickupExact?.lng,
+      ...(pickupExact ? {
+        pickup_address:          pickupAddress || `${pickupExact.lat.toFixed(5)}, ${pickupExact.lng.toFixed(5)}`,
+        pickup_city:             pickupCity || departure,
+        pickup_latitude:         pickupExact.lat,
+        pickup_longitude:        pickupExact.lng,
         pickup_approx_latitude:  pickupApprox?.lat,
         pickup_approx_longitude: pickupApprox?.lng,
         pickup_instructions:     pickupInstructions || undefined,
       } : {}),
-      ...(deliveryAddress && deliveryCity ? {
-        delivery_address:          deliveryAddress,
-        delivery_city:             deliveryCity,
-        delivery_latitude:         deliveryExact?.lat,
-        delivery_longitude:        deliveryExact?.lng,
+      ...(deliveryExact ? {
+        delivery_address:          deliveryAddress || `${deliveryExact.lat.toFixed(5)}, ${deliveryExact.lng.toFixed(5)}`,
+        delivery_city:             deliveryCity || destination,
+        delivery_latitude:         deliveryExact.lat,
+        delivery_longitude:        deliveryExact.lng,
         delivery_approx_latitude:  deliveryApprox?.lat,
         delivery_approx_longitude: deliveryApprox?.lng,
         delivery_instructions:     deliveryInstructions || undefined,

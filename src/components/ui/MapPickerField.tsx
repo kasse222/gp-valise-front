@@ -56,7 +56,7 @@ export function MapPickerField({
   const markerRef      = useRef<L>(null)
   const approxRef      = useRef<L>(null)
   const [coords,          setCoords]          = useState<Coords | null>(initialCoords ?? null)
-  const [city,            setCity]            = useState(initialCity)
+  const [city,            setCity]            = useState(initialCity ?? '')
   const [address,         setAddress]         = useState('')
   const [suggestions,     setSuggestions]     = useState<{ display_name: string; lat: string; lon: string }[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -65,6 +65,15 @@ export function MapPickerField({
   const [leafletReady,    setLeafletReady]    = useState(false)
   const [mapVisible,      setMapVisible]      = useState(!!initialCity || !!initialCoords)
   const [error,           setError]           = useState<string | null>(null)
+
+  // Sync city depuis prop parent (ex: ville de départ choisie)
+  useEffect(() => {
+    if (initialCity && initialCity !== city) {
+      setCity(initialCity)
+      setMapVisible(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCity])
 
   // ── Charger Leaflet ──────────────────────────────────────────────────
   useEffect(() => {
@@ -135,6 +144,10 @@ export function MapPickerField({
     }).addTo(map).bindPopup("Zone visible par l'expéditeur avant paiement")
     setCoords(c)
     onCoords(c, approx)
+    // Si pas d'adresse saisie, utiliser les coordonnées comme référence
+    if (!address) {
+      onAddressChange?.(`${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onCoords])
 
