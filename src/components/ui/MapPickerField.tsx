@@ -1,147 +1,179 @@
 /**
- * MapPickerField — sélection pickup location via carte Leaflet CDN
- * Pas d'import leaflet — chargé via CDN dynamiquement
+ * MapPickerField — carte Leaflet avec geocoding Nominatim
+ * - CitySelect → centre la carte automatiquement
+ * - Adresse → geocode et centre
+ * - Clic carte ou géolocalisation → pin exact
+ * - Zone ~500m calculée automatiquement
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { MapPin, Locate, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { MapPin, Locate, RotateCcw, Search } from 'lucide-react'
+import { CityInputInline } from '@/components/ui/CitySelect'
 
-interface Coords {
-  lat: number
-  lng: number
-}
+interface Coords { lat: number; lng: number }
 
 interface MapPickerFieldProps {
   onCoords:      (exact: Coords, approx: Coords) => void
+  onCityChange?: (city: string) => void
+  initialCity?:  string
   initialCoords?: Coords | null
 }
 
-// Offset aléatoire ~200-500m
 function randomOffset(): number {
   const sign   = Math.random() > 0.5 ? 1 : -1
   const amount = 0.002 + Math.random() * 0.003
   return sign * amount
 }
 
-function approxFrom(exact: Coords): Coords {
-  return {
-    lat: exact.lat + randomOffset(),
-    lng: exact.lng + randomOffset(),
+function approxFrom(c: Coords): Coords {
+  return { lat: c.lat + randomOffset(), lng: c.lng + randomOffset() }
+}
+
+// Geocoding via Nominatim (OpenStreetMap) — gratuit, pas de clé
+async function geocode(query: string): Promise<Coords | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'fr' } },
+    )
+    const data = await res.json()
+    if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+    return null
+  } catch {
+    return null
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type LeafletType = any
+type L = any
 
-export function MapPickerField({ onCoords, initialCoords }: MapPickerFieldProps) {
+export function MapPickerField({
+  onCoords, onCityChange, initialCity = '', initialCoords,
+}: MapPickerFieldProps) {
   const mapRef         = useRef<HTMLDivElement>(null)
-  const leafletMap     = useRef<LeafletType>(null)
-  const markerRef      = useRef<LeafletType>(null)
-  const approxRef      = useRef<LeafletType>(null)
+  const leafletMap     = useRef<L>(null)
+  const markerRef      = useRef<L>(null)
+  const approxRef      = useRef<L>(null)
   const [coords,       setCoords]       = useState<Coords | null>(initialCoords ?? null)
+  const [city,         setCity]         = useState(initialCity)
+  const [address,      setAddress]      = useState('')
   const [loading,      setLoading]      = useState(false)
+  const [geocoding,    setGeocoding]    = useState(false)
   const [leafletReady, setLeafletReady] = useState(false)
   const [error,        setError]        = useState<string | null>(null)
 
-  // ── Charger Leaflet via CDN ─────────────────────────────────────────
+  // ── Charger Leaflet ──────────────────────────────────────────────────
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((window as any).L) { setLeafletReady(true); return }
-
-    const link    = document.createElement('link')
-    link.rel      = 'stylesheet'
-    link.href     = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
+    const link   = document.createElement('link')
+    link.rel     = 'stylesheet'
+    link.href    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
     document.head.appendChild(link)
-
     const script  = document.createElement('script')
     script.src    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
     script.onload = () => setLeafletReady(true)
     document.head.appendChild(script)
   }, [])
 
-  // ── Init carte ──────────────────────────────────────────────────────
+  // ── Init carte ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!leafletReady || !mapRef.current || leafletMap.current) return
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L   = (window as any).L
-    const map = L.map(mapRef.current).setView([14.6937, -17.4441], 12)
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom:     19,
+    const Lf  = (window as any).L
+    const map = Lf.map(mapRef.current).setView([14.6937, -17.4441], 12)
+    Lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map)
-
     map.on('click', (e: { latlng: { lat: number; lng: number } }) => {
-      placeMarker({ lat: e.latlng.lat, lng: e.latlng.lng }, L, map)
+      placeMarker({ lat: e.latlng.lat, lng: e.latlng.lng })
     })
-
     leafletMap.current = map
-
     if (initialCoords) {
-      placeMarker(initialCoords, L, map)
+      placeMarker(initialCoords)
       map.setView([initialCoords.lat, initialCoords.lng], 15)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady])
 
-  function makeIcon(L: LeafletType) {
-    return L.divIcon({
-      html: `<div style="
-        width:28px;height:28px;border-radius:50% 50% 50% 0;
-        background:#1B3A6B;border:3px solid white;
-        transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.3);
-      "></div>`,
-      iconSize:   [28, 28],
-      iconAnchor: [14, 28],
-      className:  '',
+  function makeIcon() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Lf = (window as any).L
+    return Lf.divIcon({
+      html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#1B3A6B;border:3px solid white;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
+      iconSize: [28, 28], iconAnchor: [14, 28], className: '',
     })
   }
 
-  function placeMarker(c: Coords, L: LeafletType, map: LeafletType) {
+  const placeMarker = useCallback((c: Coords) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Lf  = (window as any).L
+    const map = leafletMap.current
+    if (!map || !Lf) return
     if (markerRef.current) markerRef.current.remove()
     if (approxRef.current) approxRef.current.remove()
-
-    markerRef.current = L.marker([c.lat, c.lng], { icon: makeIcon(L) })
-      .addTo(map)
-      .bindPopup('Point de dépôt exact')
-      .openPopup()
-
+    markerRef.current = Lf.marker([c.lat, c.lng], { icon: makeIcon() })
+      .addTo(map).bindPopup('Point de dépôt exact').openPopup()
     const approx = approxFrom(c)
-    approxRef.current = L.circle([approx.lat, approx.lng], {
-      radius:      500,
-      color:       '#1B3A6B',
-      fillColor:   '#EBF4FF',
-      fillOpacity: 0.35,
-      weight:      2,
-      dashArray:   '6 4',
-    }).addTo(map).bindPopup("Zone approximative visible par l'expéditeur")
-
+    approxRef.current = Lf.circle([approx.lat, approx.lng], {
+      radius: 500, color: '#1B3A6B', fillColor: '#EBF4FF',
+      fillOpacity: 0.35, weight: 2, dashArray: '6 4',
+    }).addTo(map).bindPopup("Zone visible par l'expéditeur avant paiement")
     setCoords(c)
     onCoords(c, approx)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCoords])
+
+  // ── Geocode ville → centre carte ─────────────────────────────────────
+  const geocodeAndCenter = useCallback(async (query: string, zoom = 13) => {
+    if (!query.trim() || !leafletMap.current) return
+    setGeocoding(true)
+    const result = await geocode(query)
+    setGeocoding(false)
+    if (result && leafletMap.current) {
+      leafletMap.current.setView([result.lat, result.lng], zoom)
+    }
+  }, [])
+
+  // Ville change → geocode + centre (sans placer de marker)
+  useEffect(() => {
+    if (city) geocodeAndCenter(city, 13)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city])
+
+  // Adresse change → geocode + place marker (debounced 800ms)
+  useEffect(() => {
+    if (!address.trim() || address.length < 5) return
+    const timer = setTimeout(async () => {
+      const query  = city ? `${address}, ${city}` : address
+      setGeocoding(true)
+      const result = await geocode(query)
+      setGeocoding(false)
+      if (result) {
+        leafletMap.current?.setView([result.lat, result.lng], 17)
+        placeMarker(result)
+      }
+    }, 800)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, city])
+
+  function handleCityChange(v: string) {
+    setCity(v)
+    onCityChange?.(v)
   }
 
   function handleGeolocate() {
-    if (!navigator.geolocation) {
-      setError('Géolocalisation non supportée.')
-      return
-    }
-    setLoading(true)
-    setError(null)
+    if (!navigator.geolocation) { setError('Géolocalisation non supportée.'); return }
+    setLoading(true); setError(null)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLoading(false)
-        const c   = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const L   = (window as any).L
-        const map = leafletMap.current
-        map.setView([c.lat, c.lng], 16)
-        placeMarker(c, L, map)
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        leafletMap.current?.setView([c.lat, c.lng], 16)
+        placeMarker(c)
       },
-      () => {
-        setLoading(false)
-        setError("Impossible d'obtenir votre position. Vérifiez les autorisations.")
-      },
+      () => { setLoading(false); setError("Impossible d'obtenir votre position.") },
       { enableHighAccuracy: true, timeout: 10000 },
     )
   }
@@ -150,29 +182,55 @@ export function MapPickerField({ onCoords, initialCoords }: MapPickerFieldProps)
     if (markerRef.current) { markerRef.current.remove(); markerRef.current = null }
     if (approxRef.current) { approxRef.current.remove(); approxRef.current = null }
     setCoords(null)
+    setAddress('')
     onCoords({ lat: 0, lng: 0 }, { lat: 0, lng: 0 })
   }
 
   return (
     <div className="flex flex-col gap-3">
+
+      {/* Ville avec datalist */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-gray-600">
+          Ville {geocoding && <span className="text-gray-400 ml-1">· Recherche…</span>}
+        </label>
+        <div className="flex items-center border border-gray-300 rounded-[10px] px-3 bg-white min-h-[44px] focus-within:border-[#1B3A6B] focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all">
+          <CityInputInline
+            value={city}
+            onChange={handleCityChange}
+            placeholder="Choisir une ville…"
+          />
+        </div>
+      </div>
+
+      {/* Adresse → geocode auto */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-gray-600">
+          Adresse précise
+          <span className="text-gray-400 font-normal ml-1">(la carte se met à jour automatiquement)</span>
+        </label>
+        <div className="flex items-center gap-2 border border-gray-300 rounded-[10px] px-3 bg-white min-h-[44px] focus-within:border-[#1B3A6B] focus-within:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all">
+          <Search className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="50 route Ouled Ziane…"
+            className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none py-2"
+          />
+        </div>
+      </div>
+
       {/* Actions */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={handleGeolocate}
-          disabled={loading || !leafletReady}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] disabled:opacity-50 transition-colors min-h-[44px]"
-        >
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={handleGeolocate} disabled={loading || !leafletReady}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] disabled:opacity-50 transition-colors min-h-[44px]">
           <Locate className="w-4 h-4" aria-hidden />
           {loading ? 'Localisation…' : 'Ma position'}
         </button>
-
         {coords && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors min-h-[44px]"
-          >
+          <button type="button" onClick={handleReset}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors min-h-[44px]">
             <RotateCcw className="w-3.5 h-3.5" aria-hidden />
             Réinitialiser
           </button>
@@ -181,22 +239,22 @@ export function MapPickerField({ onCoords, initialCoords }: MapPickerFieldProps)
 
       {/* Carte */}
       <div className="relative rounded-[14px] overflow-hidden border border-gray-200">
-        {!leafletReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
-            <p className="text-sm text-gray-500">Chargement de la carte…</p>
+        {(!leafletReady || geocoding) && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 text-xs text-gray-600 px-3 py-1.5 rounded-full shadow">
+            {!leafletReady ? 'Chargement de la carte…' : 'Recherche en cours…'}
           </div>
         )}
-        <div ref={mapRef} style={{ height: '280px', width: '100%' }} />
+        <div ref={mapRef} style={{ height: '300px', width: '100%' }} />
       </div>
 
       {/* Status */}
       {!coords ? (
         <p className="text-xs text-gray-500 flex items-center gap-1.5">
           <MapPin className="w-3.5 h-3.5 text-gray-400" aria-hidden />
-          Cliquez sur la carte ou utilisez votre position
+          Saisissez une adresse, cliquez sur la carte ou utilisez votre position
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           <p className="text-xs text-emerald-600 font-medium flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5" aria-hidden />
             Point placé — {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
@@ -207,11 +265,7 @@ export function MapPickerField({ onCoords, initialCoords }: MapPickerFieldProps)
         </div>
       )}
 
-      {error && (
-        <p className="text-xs text-red-600 flex items-center gap-1">
-          <span aria-hidden>⚠</span> {error}
-        </p>
-      )}
+      {error && <p className="text-xs text-red-600 flex items-center gap-1"><span aria-hidden>⚠</span> {error}</p>}
     </div>
   )
 }

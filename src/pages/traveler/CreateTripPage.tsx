@@ -145,16 +145,11 @@ export default function CreateTripPage() {
               placeholder="12 rue de la Paix"
               helper="Masquée jusqu'au paiement confirmé"
             />
-            <Input
-              label="Ville"
-              value={pickupCity}
-              onChange={(e) => setPickupCity(e.target.value)}
-              placeholder="Dakar"
-            />
-
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">Localisation sur la carte</label>
               <MapPickerField
+                initialCity={pickupCity}
+                onCityChange={setPickupCity}
                 onCoords={(exact, approx) => {
                   setExactCoords(exact.lat !== 0 ? exact : null)
                   setApproxCoords(approx.lat !== 0 ? approx : null)
