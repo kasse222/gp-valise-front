@@ -45,3 +45,10 @@ export async function sendDisputeMessage(id: number, body: string): Promise<Disp
   const { data } = await client.post<{ data: DisputeMessage }>(`/disputes/${id}/messages`, { body })
   return data.data
 }
+export async function getDisputeByBooking(bookingId: number): Promise<Dispute> {
+  // Le booking contient le dispute dans status_history ou via un champ dispute_id
+  // On cherche via GET /bookings/:id et on extrait le dispute
+  const { data } = await client.get<{ data: { dispute?: Dispute } }>(`/bookings/${bookingId}`)
+  if (!data.data.dispute) throw new Error('Aucun litige trouvé')
+  return data.data.dispute
+}
