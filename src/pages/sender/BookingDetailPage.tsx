@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, AlertCircle, ShieldCheck,
@@ -20,6 +20,53 @@ import client from '@/api/client'
 import type { PickupLocation } from '@/types'
 
 // ─── LocationRevealCard ────────────────────────────────────────────────────
+
+function ApproxMap({ lat, lng }: { lat: number; lng: number }) {
+  const mapRef     = useRef<HTMLDivElement>(null)
+  const mapInst    = useRef<unknown>(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).L) { setReady(true); return }
+    const link   = document.createElement('link')
+    link.rel     = 'stylesheet'
+    link.href    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
+    document.head.appendChild(link)
+    const script  = document.createElement('script')
+    script.src    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
+    script.onload = () => setReady(true)
+    document.head.appendChild(script)
+  }, [])
+
+  useEffect(() => {
+    if (!ready || !mapRef.current || mapInst.current) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L   = (window as any).L
+    const map = L.map(mapRef.current, { zoomControl: true, dragging: true, scrollWheelZoom: false })
+      .setView([lat, lng], 14)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19,
+    }).addTo(map)
+    L.circle([lat, lng], {
+      radius: 500, color: '#1B3A6B', fillColor: '#EBF4FF',
+      fillOpacity: 0.4, weight: 2, dashArray: '6 4',
+    }).addTo(map)
+    mapInst.current = map
+    setTimeout(() => map.invalidateSize(), 100)
+  }, [ready, lat, lng])
+
+  return (
+    <div className="relative rounded-[10px] overflow-hidden border border-gray-200 mt-2">
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <p className="text-xs text-gray-500">Chargement de la carte…</p>
+        </div>
+      )}
+      <div ref={mapRef} style={{ height: '200px', width: '100%' }} />
+    </div>
+  )
+}
 
 function LocationRevealCard({
   label,
@@ -66,24 +113,32 @@ function LocationRevealCard({
               <p className="text-xs text-gray-500 mt-1.5 ml-5">ℹ️ {location.instructions}</p>
             )}
           </div>
+          {/* Carte exacte si coords disponibles */}
+          {location.latitude && location.longitude && (
+            <ApproxMap lat={Number(location.latitude)} lng={Number(location.longitude)} />
+          )}
         </div>
       ) : (
         // Zone approximative
         <div className="flex flex-col gap-2">
-          {location.approximate_latitude && (
-            <div className="bg-[#EBF4FF] rounded-[10px] p-3 text-sm">
-              <p className="text-xs text-[#1B3A6B] font-medium mb-1">📍 Zone approximative (~500m)</p>
-              <p className="text-gray-600 text-xs">
-                Ville : <span className="font-medium text-gray-900">{location.city}</span>
-              </p>
-              {!isConfirmed && (
+          {location.approximate_latitude ? (
+            <>
+              <div className="bg-[#EBF4FF] rounded-[10px] p-3 text-sm">
+                <p className="text-xs text-[#1B3A6B] font-medium mb-1">📍 Zone approximative (~500m)</p>
+                <p className="text-gray-600 text-xs">
+                  Ville : <span className="font-medium text-gray-900">{location.city}</span>
+                </p>
                 <p className="text-xs text-gray-400 mt-1.5">
                   L'adresse exacte sera révélée après confirmation du paiement.
                 </p>
-              )}
-            </div>
-          )}
-          {!location.approximate_latitude && (
+              </div>
+              {/* Carte zone ~500m */}
+              <ApproxMap
+                lat={Number(location.approximate_latitude)}
+                lng={Number(location.approximate_longitude)}
+              />
+            </>
+          ) : (
             <p className="text-sm text-gray-400 italic">Point de dépôt non défini par le voyageur.</p>
           )}
         </div>
