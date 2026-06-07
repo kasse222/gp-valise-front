@@ -36,7 +36,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
         <Link to="/" aria-label="Accueil Safe Move">
-          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-10" />
+          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-14" />
         </Link>
         <p className="text-xs text-gray-500 mt-2 truncate">
           {user?.first_name} {user?.last_name}
@@ -137,7 +137,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
             <Menu size={22} className="text-gray-600" />
           </button>
           <Link to="/">
-            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-8" />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-12" />
           </Link>
         </div>
 
