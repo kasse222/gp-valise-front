@@ -512,20 +512,35 @@ export default function BookingDetailPage() {
             {booking.items.map((item) => (
               <div key={item.id} className="flex flex-col py-2.5 gap-2">
                 <div className="flex items-center justify-between text-sm">
-                  <div className="text-gray-700">
-                    <span className="font-medium">{item.luggage?.tracking_id ?? `Item #${item.id}`}</span>
-                    <span className="text-gray-400 ml-2">· {(item.kg_reserved / 1000).toFixed(1)} kg</span>
-                    {item.luggage?.category_icon && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        {item.luggage.category_icon} {item.luggage.category_label}
-                      </span>
-                    )}
+                  <div className="min-w-0">
+                    <span className="font-mono text-xs text-gray-400 truncate block">
+                      {item.luggage?.tracking_id ?? `Item #${item.id}`}
+                    </span>
+                    <span className="text-gray-600 text-xs">
+                      {(item.kg_reserved / 1000).toFixed(1)} kg
+                    </span>
                   </div>
-                  <span className="font-medium text-gray-900 font-mono">{formatAmount(item.price, 'EUR')}</span>
+                  <span className="font-medium text-gray-900 font-mono shrink-0 ml-4">{formatAmount(item.price, 'EUR')}</span>
                 </div>
-                {item.luggage?.description && (
+
+                {/* Content items — tags par article */}
+                {item.luggage?.content_items && item.luggage.content_items.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.luggage.content_items.map((ci, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[#EBF4FF] text-[#1B3A6B] font-medium">
+                        {ci.category === 'document'  ? '📄' :
+                         ci.category === 'phone'     ? '📱' :
+                         ci.category === 'computer'  ? '💻' :
+                         ci.category === 'clothes'   ? '👕' :
+                         ci.category === 'cosmetics' ? '💄' :
+                         ci.category === 'medicine'  ? '💊' : '📦'}
+                        {ci.description}
+                      </span>
+                    ))}
+                  </div>
+                ) : item.luggage?.description ? (
                   <p className="text-xs text-gray-500">{item.luggage.description}</p>
-                )}
+                ) : null}
               </div>
             ))}
           </div>
