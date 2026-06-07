@@ -20,6 +20,12 @@ interface BookingModalProps {
   onClose: () => void
 }
 
+interface ContentItem {
+  category:    string
+  description: string
+  photo_path:  string | null
+}
+
 const LUGGAGE_CATEGORIES = [
   { value: 'document',   label: '📄 Document' },
   { value: 'phone',      label: '📱 Téléphone' },
@@ -30,16 +36,35 @@ const LUGGAGE_CATEGORIES = [
   { value: 'other',      label: '📦 Autre' },
 ] as const
 
+const DEFAULT_ITEM: ContentItem = { category: 'other', description: '', photo_path: null }
+
 function BookingModal({ trip, onClose }: BookingModalProps) {
-  const navigate    = useNavigate()
-  const [kgReserved,  setKgReserved]  = useState(1)
-  const [description, setDescription] = useState('')
-  const [comment,     setComment]     = useState('')
-  const [category,    setCategory]    = useState<string>('other')
+  const navigate       = useNavigate()
+  const [kgReserved,   setKgReserved]  = useState(1)
+  const [comment,      setComment]     = useState('')
+  const [items,        setItems]       = useState<ContentItem[]>([{ ...DEFAULT_ITEM }])
 
   const maxKg      = trip.grams_disponible / 1000
   const pricePerKg = trip.price_per_kg / 100
   const totalCents = Math.round(kgReserved * trip.price_per_kg)
+
+  const updateItem = (index: number, field: keyof ContentItem, value: string | null) => {
+    setItems((prev) => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  const addItem = () => setItems((prev) => [...prev, { ...DEFAULT_ITEM }])
+
+  const removeItem = (index: number) => {
+    if (items.length === 1) return
+    setItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // Description synthétique = liste des descriptions
+  const syntheticDescription = items.map((i) => i.description).filter(Boolean).join(', ')
+  // Catégorie principale = catégorie du premier article
+  const mainCategory = items[0]?.category ?? 'other'
+
+  const canSubmit = items.every((i) => i.description.trim().length > 0)
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -49,8 +74,9 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 
       const luggage = await createLuggage({
         trip_id:             trip.id,
-        description,
-        category,
+        description:         syntheticDescription || 'Colis',
+        category:            mainCategory,
+        content_items:       items,
         weight_kg:           Math.round(kgReserved * 10),
         length_cm:           40,
         width_cm:            30,
@@ -87,15 +113,15 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
       onKeyDown={handleKey} role="dialog" aria-modal aria-labelledby="booking-modal-title">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-lg bg-white rounded-[20px] shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="relative w-full max-w-lg bg-white rounded-[20px] shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 id="booking-modal-title" className="text-base font-semibold text-gray-900">Réserver ce trajet</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" aria-label="Fermer">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2 font-semibold text-gray-900 mb-1">
             <span>{trip.departure}</span>
             <Plane className="h-3.5 w-3.5 text-gray-400" aria-hidden />
@@ -108,89 +134,111 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
             <span className="text-gray-300" aria-hidden>·</span>
             <span>{maxKg.toFixed(1)} kg dispo</span>
           </div>
-
-          {/* Zone de dépôt approximative dans le modal */}
           {trip.pickup_location && (
             <div className="mt-3 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span>
-                Point de dépôt disponible à <strong>{trip.pickup_location.city}</strong>
-                {trip.pickup_location.revealed && trip.pickup_location.address
-                  ? ` — ${trip.pickup_location.address}`
-                  : ' (adresse exacte après paiement)'}
-              </span>
+              <span>Point de dépôt disponible à <strong>{trip.pickup_location.city}</strong>{trip.pickup_location.revealed && trip.pickup_location.address ? ` — ${trip.pickup_location.address}` : ' (adresse exacte après paiement)'}</span>
             </div>
           )}
           {trip.delivery_location && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span>
-                Point de remise disponible à <strong>{trip.delivery_location.city}</strong>
-                {trip.delivery_location.revealed && trip.delivery_location.address
-                  ? ` — ${trip.delivery_location.address}`
-                  : ' (adresse exacte après paiement)'}
-              </span>
+              <span>Point de remise disponible à <strong>{trip.delivery_location.city}</strong>{trip.delivery_location.revealed && trip.delivery_location.address ? ` — ${trip.delivery_location.address}` : ' (adresse exacte après paiement)'}</span>
             </div>
           )}
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="px-6 py-5 flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 select-none">Poids réservé (kg)</label>
-            <div className="flex items-center gap-4">
-              <input type="range" min={0.5} max={maxKg} step={0.5} value={kgReserved}
-                onChange={(e) => setKgReserved(Number(e.target.value))}
-                aria-label="Poids réservé en kg"
-                className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
-              <span className="min-w-[4.5rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
-                {kgReserved} kg
-              </span>
+        <div className="overflow-y-auto flex-1">
+          <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="px-6 py-5 flex flex-col gap-5">
+
+            {/* Poids total */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700 select-none">Poids total de l'envoi (kg)</label>
+              <div className="flex items-center gap-4">
+                <input type="range" min={0.5} max={maxKg} step={0.5} value={kgReserved}
+                  onChange={(e) => setKgReserved(Number(e.target.value))}
+                  aria-label="Poids réservé en kg"
+                  className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
+                <span className="min-w-[4.5rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
+                  {kgReserved} kg
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-400"><span>0.5 kg</span><span>{maxKg.toFixed(1)} kg</span></div>
             </div>
-            <div className="flex justify-between text-xs text-gray-400"><span>0.5 kg</span><span>{maxKg.toFixed(1)} kg</span></div>
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="description" className="text-sm font-medium text-gray-700">
-              Description du colis <span className="text-red-500" aria-hidden>*</span>
-            </label>
-            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)}
-              required rows={3} placeholder="Ex : vêtements, livres, électronique…"
-              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
-          </div>
+            {/* Contenu du colis */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">
+                  Contenu du colis <span className="text-red-500" aria-hidden>*</span>
+                </label>
+                <span className="text-xs text-gray-400">{items.length} article{items.length > 1 ? 's' : ''}</span>
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="category" className="text-sm font-medium text-gray-700">Catégorie</label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full min-h-[48px] px-4 py-3 rounded-[10px] border border-gray-300 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all"
-            >
-              {LUGGAGE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </div>
+              <div className="flex flex-col gap-3">
+                {items.map((item, index) => (
+                  <div key={index} className="relative flex flex-col gap-2 p-3 bg-gray-50 rounded-[12px] border border-gray-200">
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => removeItem(index)}
+                        className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                        aria-label="Supprimer cet article">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="comment" className="text-sm font-medium text-gray-700">
-              Commentaire <span className="text-gray-400 font-normal">(optionnel)</span>
-            </label>
-            <textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)}
-              rows={2} placeholder="Instructions particulières…"
-              className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
-          </div>
+                    <div className="flex gap-2 items-center">
+                      <select
+                        value={item.category}
+                        onChange={(e) => updateItem(index, 'category', e.target.value)}
+                        className="flex-shrink-0 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#1B3A6B] transition-all"
+                      >
+                        {LUGGAGE_CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
 
-          <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
-            <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
-            <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents)}</span>
-          </div>
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                        placeholder="Ex : iPhone 13, vêtements d'hiver…"
+                        required
+                        className="flex-1 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] transition-all text-gray-900 placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-          <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
-            <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending}>Confirmer la réservation</Button>
-          </div>
-        </form>
+              <button type="button" onClick={addItem}
+                className="flex items-center gap-1.5 self-start text-sm text-[#1B3A6B] font-medium hover:underline">
+                <span className="text-lg leading-none">+</span>
+                Ajouter un article
+              </button>
+            </div>
+
+            {/* Commentaire */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="comment" className="text-sm font-medium text-gray-700">
+                Commentaire <span className="text-gray-400 font-normal">(optionnel)</span>
+              </label>
+              <textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)}
+                rows={2} placeholder="Instructions particulières…"
+                className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
+            </div>
+
+            {/* Total */}
+            <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
+              <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
+              <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents)}</span>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
+              <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending} disabled={!canSubmit}>Confirmer la réservation</Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

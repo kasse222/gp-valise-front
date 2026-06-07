@@ -131,6 +131,11 @@ export interface LuggageResource {
   category_label: string | null;
   category_icon: string | null;
   photo_path: string | null;
+  content_items: Array<{
+    category: string;
+    description: string;
+    photo_path: string | null;
+  }>;
   user: UserResource | null;
   created_at: string;
   updated_at: string;
