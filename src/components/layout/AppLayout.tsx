@@ -167,6 +167,16 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
             </Link>
           )
         })}
+
+        {/* Bouton déconnexion dans la bottom nav mobile */}
+        <button
+          onClick={handleLogout}
+          aria-label="Déconnexion"
+          className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium text-red-500 min-h-[56px] transition-colors hover:bg-red-50"
+        >
+          <LogOut size={20} aria-hidden />
+          <span className="text-[10px]">Quitter</span>
+        </button>
       </nav>
     </div>
   )
