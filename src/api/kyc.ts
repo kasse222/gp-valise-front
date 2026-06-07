@@ -28,7 +28,7 @@ export async function submitKyc(payload: {
   return data.data
 }
 
-export async function uploadFile(file: File, context: 'kyc'): Promise<string> {
+export async function uploadFile(file: File, context: 'kyc' | 'luggage'): Promise<string> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('context', context)

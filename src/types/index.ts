@@ -127,6 +127,10 @@ export interface LuggageResource {
   is_fragile: boolean;
   insurance_requested: boolean;
   description: string | null;
+  category: string | null;
+  category_label: string | null;
+  category_icon: string | null;
+  photo_path: string | null;
   user: UserResource | null;
   created_at: string;
   updated_at: string;

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, AlertCircle, ShieldCheck,
-  ExternalLink, Clock, Search, X, MapPin, Home, MessageSquare,
+  ExternalLink, Clock, Search, X, MapPin, Home, MessageSquare, Upload,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
@@ -18,6 +18,76 @@ import { useAuthStore, isTraveler } from '@/store/authStore'
 import { PickupLocationCard } from '@/components/ui/PickupLocationCard'
 import client from '@/api/client'
 import type { PickupLocation } from '@/types'
+import { uploadFile } from '@/api/kyc'
+
+// ─── LuggagePhotoUpload ────────────────────────────────────────────────────
+
+function LuggagePhotoUpload({
+  luggageId,
+  trackingId,
+  existingPhotoPath,
+}: {
+  luggageId:         number
+  trackingId:        string | null
+  existingPhotoPath: string | null
+}) {
+  const inputRef                    = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading]   = useState(false)
+  const [uploaded,  setUploaded]    = useState(!!existingPhotoPath)
+  const [fileName,  setFileName]    = useState<string | null>(null)
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const path = await uploadFile(file, 'luggage')
+      await client.put(`/luggages/${luggageId}`, { photo_path: path })
+      setUploaded(true)
+      setFileName(file.name)
+      toast.success('Photo ajoutée.')
+    } catch {
+      toast.error('Erreur lors de l\'upload.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs font-medium text-gray-600 truncate">
+        Colis : <span className="font-mono text-gray-500">{trackingId ?? `#${luggageId}`}</span>
+      </p>
+      <div
+        className={`relative flex items-center justify-center gap-2 min-h-[72px] rounded-[10px] border-2 border-dashed transition-colors cursor-pointer
+          ${uploaded ? 'border-emerald-400 bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:border-[#1B3A6B] hover:bg-[#EBF4FF]'}`}
+        onClick={() => inputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+      >
+        <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleChange} disabled={uploading} />
+        {uploading ? (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="w-4 h-4 border-2 border-[#1B3A6B] border-t-transparent rounded-full animate-spin" />
+            Upload…
+          </div>
+        ) : uploaded ? (
+          <div className="flex items-center gap-2 text-sm text-emerald-700">
+            <span>✅</span>
+            <span className="font-medium truncate max-w-[200px]">{fileName ?? 'Photo ajoutée'}</span>
+            <span className="text-xs text-emerald-500 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); setUploaded(false) }}>Modifier</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Upload className="w-4 h-4 text-gray-400" aria-hidden />
+            <span>Ajouter une photo JPG/PNG</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ─── LocationRevealCard ────────────────────────────────────────────────────
 
@@ -440,13 +510,45 @@ export default function BookingDetailPage() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Items réservés</h2>
           <div className="divide-y divide-gray-100">
             {booking.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
-                <div className="text-gray-700">
-                  <span className="font-medium">{item.luggage?.tracking_id ?? `Item #${item.id}`}</span>
-                  <span className="text-gray-400 ml-2">· {(item.kg_reserved / 1000).toFixed(1)} kg</span>
+              <div key={item.id} className="flex flex-col py-2.5 gap-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="text-gray-700">
+                    <span className="font-medium">{item.luggage?.tracking_id ?? `Item #${item.id}`}</span>
+                    <span className="text-gray-400 ml-2">· {(item.kg_reserved / 1000).toFixed(1)} kg</span>
+                    {item.luggage?.category_icon && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        {item.luggage.category_icon} {item.luggage.category_label}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-medium text-gray-900 font-mono">{formatAmount(item.price, 'EUR')}</span>
                 </div>
-                <span className="font-medium text-gray-900 font-mono">{formatAmount(item.price, 'EUR')}</span>
+                {item.luggage?.description && (
+                  <p className="text-xs text-gray-500">{item.luggage.description}</p>
+                )}
               </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Photo colis (EN_PAIEMENT uniquement) ───────────────────────── */}
+      {isPendingPayment && booking.items.some((item) => item.luggage) && (
+        <Card className="mb-4">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            📸 Photo du colis
+          </h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Ajoutez une photo de votre colis avant le paiement. Cela facilite la remise au voyageur.
+          </p>
+          <div className="flex flex-col gap-4">
+            {booking.items.map((item) => item.luggage && (
+              <LuggagePhotoUpload
+                key={item.id}
+                luggageId={item.luggage_id}
+                trackingId={item.luggage.tracking_id}
+                existingPhotoPath={item.luggage.photo_path}
+              />
             ))}
           </div>
         </Card>
