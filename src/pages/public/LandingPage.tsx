@@ -358,10 +358,10 @@ export default function LandingPage() {
         className="border-y border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-            <Stat value="500+" label="Colis envoyés" />
-            <Stat value="12"   label="Pays couverts" />
-            <Stat value="4.8★" label="Note moyenne" />
-            <Stat value="100%" label="Paiements sécurisés" />
+            <Stat value="50+"     label="Pays desservis" />
+            <Stat value="Gratuit" label="Inscription" />
+            <Stat value="Escrow"  label="Paiement sécurisé" />
+            <Stat value="KYC"     label="Identités vérifiées" />
           </div>
         </div>
       </section>
