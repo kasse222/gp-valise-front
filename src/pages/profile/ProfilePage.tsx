@@ -122,13 +122,13 @@ function FileUploadField({
 // ─── KYC Form ──────────────────────────────────────────────────────────────
 
 function KycForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const [idPhotoPath,     setIdPhotoPath]     = useState<string | null>(null)
-  const [parcelPhotoPath, setParcelPhotoPath] = useState<string | null>(null)
+  const [idFrontPath, setIdFrontPath] = useState<string | null>(null)
+  const [idBackPath,  setIdBackPath]  = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () => submitKyc({
-      id_photo_path:     idPhotoPath!,
-      parcel_photo_path: parcelPhotoPath!,
+      id_front_path: idFrontPath!,
+      id_back_path:  idBackPath ?? undefined,
     }),
     onSuccess: () => {
       toast.success('Dossier KYC soumis avec succès !')
@@ -139,7 +139,7 @@ function KycForm({ onSubmitted }: { onSubmitted: () => void }) {
     },
   })
 
-  const canSubmit = !!idPhotoPath && !!parcelPhotoPath && !mutation.isPending
+  const canSubmit = !!idFrontPath && !mutation.isPending
 
   return (
     <div className="flex flex-col gap-4">
@@ -147,20 +147,20 @@ function KycForm({ onSubmitted }: { onSubmitted: () => void }) {
         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
         <div>
           <p className="font-semibold">Pourquoi cette vérification ?</p>
-          <p className="mt-0.5">La vérification d'identité est obligatoire pour accéder aux fonctionnalités financières (paiements, remboursements). Vos documents sont stockés de façon sécurisée et ne sont accessibles qu'à notre équipe.</p>
+          <p className="mt-0.5">La vérification d'identité est obligatoire pour accéder aux fonctionnalités financières. Vos documents sont stockés de façon sécurisée et ne sont accessibles qu'à notre équipe.</p>
         </div>
       </div>
 
       <FileUploadField
-        label="Pièce d'identité"
-        hint="Carte nationale, passeport ou titre de séjour (recto-verso). Format JPG, PNG ou PDF."
-        onUploaded={setIdPhotoPath}
+        label="Pièce d'identité — Recto *"
+        hint="Carte nationale, passeport ou titre de séjour (face avant). JPG, PNG ou PDF — max 5 Mo."
+        onUploaded={setIdFrontPath}
       />
 
       <FileUploadField
-        label="Photo du colis"
-        hint="Photo claire de votre colis (emballé ou à envoyer). Format JPG ou PNG."
-        onUploaded={setParcelPhotoPath}
+        label="Pièce d'identité — Verso (optionnel)"
+        hint="Face arrière de votre pièce d'identité si applicable."
+        onUploaded={setIdBackPath}
       />
 
       <Button

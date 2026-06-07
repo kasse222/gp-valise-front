@@ -21,8 +21,8 @@ export async function getKyc(): Promise<KycRequest | null> {
 }
 
 export async function submitKyc(payload: {
-  id_photo_path:     string
-  parcel_photo_path: string
+  id_front_path: string
+  id_back_path?: string
 }): Promise<KycRequest> {
   const { data } = await client.post<{ data: KycRequest }>('/kyc', payload)
   return data.data
