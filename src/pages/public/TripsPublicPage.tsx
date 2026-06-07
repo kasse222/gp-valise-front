@@ -393,7 +393,7 @@ export default function TripsPublicPage() {
           Retour
         </button>
         <Link to="/" aria-label="Accueil Safe Move">
-          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-10" />
+          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-14" />
         </Link>
         {!isLoggedIn ? (
           <Link to="/login" className="text-sm font-medium text-[#1B3A6B] hover:underline min-h-[44px] flex items-center">

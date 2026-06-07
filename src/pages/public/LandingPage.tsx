@@ -128,7 +128,7 @@ export default function LandingPage() {
 
           {/* FIX : logo dans un Link */}
           <Link to="/" className="shrink-0" aria-label="Accueil Safe Move">
-            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-14" />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-16" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">

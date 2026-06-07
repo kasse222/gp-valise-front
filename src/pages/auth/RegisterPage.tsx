@@ -138,7 +138,7 @@ export default function RegisterPage() {
         {/* Logo + titre */}
         <div className="text-center mb-8">
           <Link to="/">
-            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-12 mx-auto mb-4" />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-16 mx-auto mb-4" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Créer un compte</h1>
           <p className="text-gray-500 mt-1 text-sm">Rejoignez la communauté Safe Move</p>
