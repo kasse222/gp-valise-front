@@ -1,10 +1,17 @@
 import client from "./client";
 import type { LuggageResource } from "@/types";
 
+export interface ContentItem {
+  category:    string
+  description: string
+  photo_path?: string | null
+}
+
 export interface CreateLuggagePayload {
   trip_id:              number;
   description:          string;
   category?:            string;
+  content_items?:       ContentItem[];
   weight_kg:            number;
   length_cm?:           number;
   width_cm?:            number;
