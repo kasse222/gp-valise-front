@@ -20,11 +20,22 @@ interface BookingModalProps {
   onClose: () => void
 }
 
+const LUGGAGE_CATEGORIES = [
+  { value: 'document',   label: '📄 Document' },
+  { value: 'phone',      label: '📱 Téléphone' },
+  { value: 'computer',   label: '💻 Ordinateur' },
+  { value: 'clothes',    label: '👕 Vêtements' },
+  { value: 'cosmetics',  label: '💄 Cosmétiques' },
+  { value: 'medicine',   label: '💊 Médicaments' },
+  { value: 'other',      label: '📦 Autre' },
+] as const
+
 function BookingModal({ trip, onClose }: BookingModalProps) {
   const navigate    = useNavigate()
-  const [kgReserved, setKgReserved]   = useState(1)
+  const [kgReserved,  setKgReserved]  = useState(1)
   const [description, setDescription] = useState('')
-  const [comment, setComment]         = useState('')
+  const [comment,     setComment]     = useState('')
+  const [category,    setCategory]    = useState<string>('other')
 
   const maxKg      = trip.grams_disponible / 1000
   const pricePerKg = trip.price_per_kg / 100
@@ -39,6 +50,7 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
       const luggage = await createLuggage({
         trip_id:             trip.id,
         description,
+        category,
         weight_kg:           Math.round(kgReserved * 10),
         length_cm:           40,
         width_cm:            30,
@@ -144,6 +156,20 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
             <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)}
               required rows={3} placeholder="Ex : vêtements, livres, électronique…"
               className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="category" className="text-sm font-medium text-gray-700">Catégorie</label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full min-h-[48px] px-4 py-3 rounded-[10px] border border-gray-300 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] transition-all"
+            >
+              {LUGGAGE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
