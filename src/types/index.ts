@@ -175,6 +175,7 @@ export interface BookingResource {
   cancelled_at: string | null;
   payment_expires_at: string | null;
   expired_at: string | null;
+  dispute_id: number | null;
   trip: TripResource | null;
   user: UserResource | null;
   items: BookingItemResource[];

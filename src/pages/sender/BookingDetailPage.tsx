@@ -656,7 +656,7 @@ export default function BookingDetailPage() {
       </div>
 
       {/* ── Lien thread litige si en_litige ────────────────────────────── */}
-      {status === 'en_litige' && !isTravelerUser && (
+      {status === 'en_litige' && !isTravelerUser && booking.dispute_id && (
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-[14px] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" aria-hidden />
@@ -666,7 +666,7 @@ export default function BookingDetailPage() {
             </div>
           </div>
           <Link
-            to={`/sender/disputes/${booking.id}`}
+            to={`/sender/disputes/${booking.dispute_id}`}
             className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-800 hover:underline"
           >
             Voir le fil de discussion →
