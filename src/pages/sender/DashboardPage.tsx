@@ -5,10 +5,11 @@ import OverviewPage from './OverviewPage'
 import BookingsPage from './BookingsPage'
 import BookingDetailPage from './BookingDetailPage'
 import DisputesPage from './DisputesPage'
+import DisputeThreadPage from '@/pages/disputes/DisputeThreadPage'
 import ProfilePage from '@/pages/profile/ProfilePage'
 
 const navItems = [
-  { label: 'Vue d\'ensemble',  path: '/sender',          icon: <LayoutDashboard size={16} /> },
+  { label: "Vue d'ensemble",  path: '/sender',          icon: <LayoutDashboard size={16} /> },
   { label: 'Mes réservations', path: '/sender/bookings', icon: <Package size={16} /> },
   { label: 'Mes litiges',      path: '/sender/disputes', icon: <AlertTriangle size={16} /> },
   { label: 'Mon profil',       path: '/sender/profile',  icon: <User size={16} /> },
@@ -18,11 +19,12 @@ export default function SenderDashboard() {
   return (
     <AppLayout navItems={navItems}>
       <Routes>
-        <Route index             element={<OverviewPage />} />
-        <Route path="bookings"   element={<BookingsPage />} />
-        <Route path="bookings/:id" element={<BookingDetailPage />} />
-        <Route path="disputes"   element={<DisputesPage />} />
-        <Route path="profile"    element={<ProfilePage />} />
+        <Route index                         element={<OverviewPage />} />
+        <Route path="bookings"               element={<BookingsPage />} />
+        <Route path="bookings/:id"           element={<BookingDetailPage />} />
+        <Route path="disputes"               element={<DisputesPage />} />
+        <Route path="disputes/:disputeId"    element={<DisputeThreadPage />} />
+        <Route path="profile"               element={<ProfilePage />} />
       </Routes>
     </AppLayout>
   )
