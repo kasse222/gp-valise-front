@@ -44,7 +44,7 @@ function PendingRequestCard({ booking }: { booking: Booking }) {
       queryClient.invalidateQueries({ queryKey: ['bookings'] })
     },
     onError: (err: AxiosError<{ message?: string }>) => {
-      toast.error(err.response?.data?.message ?? 'Erreur lors de l\'approbation.')
+      toast.error(err.response?.data?.message ?? "Erreur lors de l'approbation.")
     },
   })
 
@@ -59,15 +59,28 @@ function PendingRequestCard({ booking }: { booking: Booking }) {
     },
   })
 
-  const isPending = approveMutation.isPending || declineMutation.isPending
+  const isPending   = approveMutation.isPending || declineMutation.isPending
   const departure   = booking.trip?.departure   ?? '—'
   const destination = booking.trip?.destination ?? '—'
   const kg          = (booking.kg_reserved / 1000).toFixed(1)
   const senderName  = booking.user?.full_name ?? booking.user?.email ?? 'Expéditeur'
   const totalAmount = booking.items.reduce((s, i) => s + i.price, 0)
 
+  // content_items agrégés depuis tous les items
+  const contentItems = booking.items.flatMap((item) => item.luggage?.content_items ?? [])
+
+  const CATEGORY_EMOJI: Record<string, string> = {
+    document:  '📄',
+    phone:     '📱',
+    computer:  '💻',
+    clothes:   '👕',
+    cosmetics: '💄',
+    medicine:  '💊',
+    other:     '📦',
+  }
+
   return (
-    <Card className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-3">
       {/* Expéditeur */}
       <div className="flex items-center gap-3">
         <Avatar name={senderName} size="sm" />
@@ -84,7 +97,18 @@ function PendingRequestCard({ booking }: { booking: Booking }) {
         <span>{destination}</span>
       </div>
 
-      {/* Détails */}
+      {/* Content items */}
+      {contentItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {contentItems.map((ci, idx) => (
+            <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs">
+              {CATEGORY_EMOJI[ci.category] ?? '📦'} {ci.description}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Poids + montant */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-500">{kg} kg réservé</span>
         <span className="font-bold text-[#1B3A6B] font-mono">
@@ -93,24 +117,18 @@ function PendingRequestCard({ booking }: { booking: Booking }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-1">
         <Button
-          variant="danger"
-          size="sm"
-          className="flex-1"
-          loading={declineMutation.isPending}
-          disabled={isPending}
+          variant="danger" size="sm" className="flex-1"
+          loading={declineMutation.isPending} disabled={isPending}
           onClick={() => declineMutation.mutate()}
           leftIcon={<XCircle className="w-4 h-4" />}
         >
           Refuser
         </Button>
         <Button
-          variant="primary"
-          size="sm"
-          className="flex-1"
-          loading={approveMutation.isPending}
-          disabled={isPending}
+          variant="primary" size="sm" className="flex-1"
+          loading={approveMutation.isPending} disabled={isPending}
           onClick={() => approveMutation.mutate()}
           leftIcon={<CheckCircle className="w-4 h-4" />}
         >
