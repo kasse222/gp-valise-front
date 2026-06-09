@@ -128,21 +128,58 @@ export default function TravelerBookingDetailPage() {
       </Card>
 
       {/* Items */}
+{/* Contenu du colis */}
       <Card className="mb-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Items réservés</h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Contenu du colis</h2>
         {booking.items.length === 0 ? (
-          <EmptyState icon={Package} title="Aucun item" description="Cette réservation ne contient aucun bagage." />
+          <EmptyState icon={Package} title="Aucun article" description="Cette réservation ne contient aucun article déclaré." />
         ) : (
-          <div className="divide-y divide-gray-100">
-            {booking.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
-                <div className="text-gray-700">
-                  <span className="font-medium">{item.luggage?.tracking_id ?? `Item #${item.id}`}</span>
-                  <span className="text-gray-400 ml-2">· {(item.kg_reserved / 1000).toFixed(1)} kg</span>
+          <div className="flex flex-col gap-4">
+            {booking.items.map((item) => {
+              const contentItems = item.luggage?.content_items ?? []
+              const photoPath    = item.luggage?.photo_path ?? null
+
+              const CATEGORY_EMOJI: Record<string, string> = {
+                document: '📄', phone: '📱', computer: '💻',
+                clothes: '👕', cosmetics: '💄', medicine: '💊', other: '📦',
+              }
+
+              return (
+                <div key={item.id} className="flex flex-col gap-3 p-3 bg-gray-50 rounded-[12px]">
+                  {/* Photo colis */}
+                  {photoPath && (
+                    <img
+                      src={photoPath}
+                      alt="Photo du colis"
+                      className="w-full max-h-48 object-cover rounded-[10px] border border-gray-200"
+                    />
+                  )}
+
+                  {/* Header item */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-900">
+                      {item.luggage?.tracking_id ?? `Item #${item.id}`}
+                    </span>
+                    <span className="text-gray-500 font-mono">{formatAmount(item.price, 'EUR')}</span>
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    {(item.kg_reserved / 1000).toFixed(1)} kg réservé
+                  </div>
+
+                  {/* Content items */}
+                  {contentItems.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {contentItems.map((ci, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                          {CATEGORY_EMOJI[ci.category] ?? '📦'} {ci.description}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <span className="font-medium text-gray-900 font-mono">{formatAmount(item.price, 'EUR')}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </Card>

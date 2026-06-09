@@ -56,12 +56,19 @@ function BookingRow({ booking }: { booking: ReturnType<typeof useBookings>['data
   const isPending = booking.status === 'pending_approval'
   const isBusy    = approveMutation.isPending || declineMutation.isPending
 
+  const contentItems = booking.items.flatMap((item) => item.luggage?.content_items ?? [])
+  const CATEGORY_EMOJI: Record<string, string> = {
+    document: '📄', phone: '📱', computer: '💻',
+    clothes: '👕', cosmetics: '💄', medicine: '💊', other: '📦',
+  }
+  const senderName = booking.user?.full_name ?? booking.user?.email ?? '—'
+
   return (
-    <div className="border-b border-gray-100 last:border-0">
+    <div className="border-b border-gray-100 last:border-0 py-3">
       <Link to={`/traveler/bookings/${booking.id}`}
-        className="flex items-center justify-between py-3 text-sm hover:bg-gray-50 transition-colors -mx-4 px-4 min-h-[56px]">
+        className="flex items-center justify-between text-sm hover:bg-gray-50 transition-colors -mx-4 px-4 py-1 rounded-lg min-h-[44px]">
         <div className="min-w-0">
-          <p className="font-medium text-gray-900 truncate">{booking.user?.email ?? '—'}</p>
+          <p className="font-medium text-gray-900 truncate">{senderName}</p>
           <p className="text-xs text-gray-500 mt-0.5">
             {(booking.kg_reserved / 1000).toFixed(1)} kg · {formatDate(booking.created_at)}
           </p>
@@ -71,12 +78,28 @@ function BookingRow({ booking }: { booking: ReturnType<typeof useBookings>['data
           <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden />
         </div>
       </Link>
+
+      {/* Content items */}
+      {contentItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1 mt-1.5 mb-2">
+          {contentItems.map((ci, idx) => (
+            <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs">
+              {CATEGORY_EMOJI[ci.category] ?? '📦'} {ci.description}
+            </span>
+          ))}
+        </div>
+      )}
+
       {isPending && (
-        <div className="flex gap-2 pb-3">
-          <Button variant="danger" size="sm" className="flex-1" loading={declineMutation.isPending} disabled={isBusy}
-            onClick={() => declineMutation.mutate()} leftIcon={<XCircle className="w-3.5 h-3.5" />}>Refuser</Button>
-          <Button variant="primary" size="sm" className="flex-1" loading={approveMutation.isPending} disabled={isBusy}
-            onClick={() => approveMutation.mutate()} leftIcon={<CheckCircle className="w-3.5 h-3.5" />}>Accepter</Button>
+        <div className="flex gap-2 mt-2">
+          <Button variant="danger" size="sm" className="flex-1"
+            loading={declineMutation.isPending} disabled={isBusy}
+            onClick={() => declineMutation.mutate()}
+            leftIcon={<XCircle className="w-3.5 h-3.5" />}>Refuser</Button>
+          <Button variant="primary" size="sm" className="flex-1"
+            loading={approveMutation.isPending} disabled={isBusy}
+            onClick={() => approveMutation.mutate()}
+            leftIcon={<CheckCircle className="w-3.5 h-3.5" />}>Accepter</Button>
         </div>
       )}
     </div>
