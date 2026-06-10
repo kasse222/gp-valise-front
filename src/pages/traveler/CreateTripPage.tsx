@@ -45,8 +45,26 @@ export default function CreateTripPage() {
   // Sync pickup/delivery city avec departure/destination
   useEffect(() => { if (departure)   setPickupCity(departure)   }, [departure])
   useEffect(() => { if (destination) setDeliveryCity(destination) }, [destination])
+  // Restaurer le trajet en attente après retour de KYC
+  useEffect(() => {
+    const pending = sessionStorage.getItem('pendingTrip')
+    if (!pending) return
+    try {
+      const data = JSON.parse(pending)
+      if (data.departure)            setDeparture(data.departure)
+      if (data.destination)          setDestination(data.destination)
+      if (data.date)                 setDate(data.date)
+      if (data.availableKg)          setAvailableKg(data.availableKg)
+      if (data.pricePerKg)           setPricePerKg(data.pricePerKg)
+      if (data.typeTrip)             setTypeTrip(data.typeTrip)
+      if (data.pickupInstructions)   setPickupInstructions(data.pickupInstructions)
+      if (data.deliveryInstructions) setDeliveryInstructions(data.deliveryInstructions)
+      sessionStorage.removeItem('pendingTrip')
+      toast.success('Votre trajet a été restauré.')
+    } catch {}
+  }, [])
 
-  const mutation = useMutation({
+    const mutation = useMutation({
     mutationFn: createTrip,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trips'] })
@@ -54,12 +72,19 @@ export default function CreateTripPage() {
       navigate('/traveler/trips')
     },
     onError: (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
-      if (error.response?.data?.errors?.kyc) {
-        navigate('/traveler/profile', { state: { kycRequired: true } })
-        return
-      }
-      toast.error(error.response?.data?.message ?? 'Une erreur est survenue')
-    },
+    if (error.response?.data?.errors?.kyc) {
+      // Sauvegarder l'état du formulaire
+      sessionStorage.setItem('pendingTrip', JSON.stringify({
+        departure, destination, date,
+        availableKg, pricePerKg, typeTrip,
+        pickupAddress, pickupCity, pickupInstructions,
+        deliveryAddress, deliveryCity, deliveryInstructions,
+      }))
+      navigate('/traveler/profile', { state: { kycRequired: true } })
+      return
+    }
+    toast.error(error.response?.data?.message ?? 'Une erreur est survenue')
+  },
   })
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

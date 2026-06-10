@@ -9,8 +9,7 @@ import { getKyc, submitKyc, uploadFile } from '@/api/kyc'
 import type { KycRequest } from '@/api/kyc'
 import { useAuthStore } from '@/store/authStore'
 import { COUNTRIES } from '@/lib/countries'
-import { useLocation } from 'react-router-dom'
-
+import { useLocation, useNavigate } from 'react-router-dom'
 // ─── KYC Status Banner ─────────────────────────────────────────────────────
 
 function KycStatusBanner({ kyc }: { kyc: KycRequest }) {
@@ -191,6 +190,7 @@ export default function ProfilePage() {
   const [lastName,  setLastName]  = useState(user?.last_name  ?? '')
   const [phone,     setPhone]     = useState(user?.phone      ?? '')
   const [country,   setCountry]   = useState(user?.country    ?? '')
+  const navigate = useNavigate()
 
   const { data: kyc, refetch: refetchKyc } = useQuery({
     queryKey: ['kyc'],
@@ -310,11 +310,21 @@ export default function ProfilePage() {
             </p>
           )}
           {kycRequired && !kycApproved && (
-            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-[14px] flex items-start gap-3 text-sm text-amber-800">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
-              <span>Vérification d'identité requise avant de publier un trajet. Soumettez votre dossier ci-dessous.</span>
-            </div>
-          )}
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-[14px] flex flex-col gap-3 text-sm text-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+                  <span>Vérification d'identité requise avant de publier un trajet. Soumettez votre dossier ci-dessous.</span>
+                </div>
+                {!!sessionStorage.getItem('pendingTrip') && (
+                  <button
+                    onClick={() => navigate('/traveler/trips/new')}
+                    className="self-start text-xs font-medium text-amber-700 underline hover:text-amber-900"
+                  >
+                    ← Retourner au formulaire de trajet
+                  </button>
+                )}
+              </div>
+            )}
           {showKycForm && (
             <KycForm onSubmitted={() => refetchKyc()} />
           )}
