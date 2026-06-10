@@ -165,7 +165,6 @@ function LocationRevealCard({
       </div>
 
       {isConfirmed && location.revealed ? (
-        // Adresse exacte révélée
         <div className="flex flex-col gap-2">
           <div className="bg-emerald-50 border border-emerald-200 rounded-[10px] p-3 text-sm">
             <p className="text-xs text-emerald-700 font-medium mb-1.5">✅ Adresse confirmée</p>
@@ -183,13 +182,11 @@ function LocationRevealCard({
               <p className="text-xs text-gray-500 mt-1.5 ml-5">ℹ️ {location.instructions}</p>
             )}
           </div>
-          {/* Carte exacte si coords disponibles */}
           {location.latitude && location.longitude && (
             <ApproxMap lat={Number(location.latitude)} lng={Number(location.longitude)} />
           )}
         </div>
       ) : (
-        // Zone approximative
         <div className="flex flex-col gap-2">
           {location.approximate_latitude ? (
             <>
@@ -202,7 +199,6 @@ function LocationRevealCard({
                   L'adresse exacte sera révélée après confirmation du paiement.
                 </p>
               </div>
-              {/* Carte zone ~500m */}
               <ApproxMap
                 lat={Number(location.approximate_latitude)}
                 lng={Number(location.approximate_longitude)}
@@ -316,6 +312,38 @@ function DisputeModal({
   )
 }
 
+// ─── TravelerBadge ─────────────────────────────────────────────────────────
+
+function TravelerBadge({ user }: { user: { first_name: string; last_name?: string | null; kyc_verified?: boolean; trips_count?: number; member_since?: string } }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[12px] border border-gray-100">
+      <div className="w-9 h-9 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-sm font-bold shrink-0">
+        {user.first_name?.[0]?.toUpperCase() ?? '?'}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-gray-900 truncate">
+          {user.first_name} {user.last_name?.[0]}.
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          {user.kyc_verified && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-200">
+              🛡️ KYC vérifié
+            </span>
+          )}
+          {(user.trips_count ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-full border border-blue-200">
+              📦 {user.trips_count} trajet{(user.trips_count ?? 0) > 1 ? 's' : ''}
+            </span>
+          )}
+          {user.member_since && (
+            <span className="text-[10px] text-gray-400">Membre {user.member_since}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 export default function BookingDetailPage() {
@@ -358,7 +386,12 @@ export default function BookingDetailPage() {
       toast.success('Paiement effectué !')
       queryClient.invalidateQueries({ queryKey: ['booking', bookingId] })
     },
-    onError: (err: AxiosError<{ message?: string }>) => {
+    onError: (err: AxiosError<{ message?: string; kyc_required?: boolean }>) => {
+      if (err.response?.data?.kyc_required) {
+        sessionStorage.setItem('pendingPaymentBookingId', String(bookingId))
+        navigate('/sender/profile', { state: { kycRequired: true } })
+        return
+      }
       toast.error(err.response?.data?.message ?? 'Une erreur est survenue')
     },
   })
@@ -409,6 +442,8 @@ export default function BookingDetailPage() {
   const canOpenDispute    = status === 'confirmee' || status === 'livree'
   const isPhoneRequired   = paymentMethod === 'mobile_money'
   const isPayDisabled     = payMutation.isPending || (isPhoneRequired && !phone.trim())
+
+  const traveler = booking.trip?.user
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
@@ -481,12 +516,6 @@ export default function BookingDetailPage() {
             <dt className="text-gray-500">Poids réservé</dt>
             <dd className="font-medium text-gray-900 mt-0.5">{kgDisplay}</dd>
           </div>
-          {booking.user && (
-            <div>
-              <dt className="text-gray-500">Voyageur</dt>
-              <dd className="font-medium text-gray-900 mt-0.5 truncate">{booking.user.email}</dd>
-            </div>
-          )}
           {booking.comment && (
             <div className="col-span-2">
               <dt className="text-gray-500">Commentaire</dt>
@@ -494,6 +523,15 @@ export default function BookingDetailPage() {
             </div>
           )}
         </dl>
+
+        {/* Badge voyageur */}
+        {traveler && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Voyageur</p>
+            <TravelerBadge user={traveler} />
+          </div>
+        )}
+
         <div className="mt-4">
           <Link
             to={`/trips/${booking.trip_id}`}
@@ -523,7 +561,6 @@ export default function BookingDetailPage() {
                   <span className="font-medium text-gray-900 font-mono shrink-0 ml-4">{formatAmount(item.price, 'EUR')}</span>
                 </div>
 
-                {/* Content items — tags par article */}
                 {item.luggage?.content_items && item.luggage.content_items.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {item.luggage.content_items.map((ci, idx) => (
@@ -625,7 +662,6 @@ export default function BookingDetailPage() {
               <span className="text-lg font-bold text-gray-900 font-mono">{formatAmount(totalAmount, 'EUR')}</span>
             </div>
 
-            {/* Countdown */}
             {booking.payment_expires_at && (
               <div className="mb-4">
                 <CountdownTimer
@@ -637,7 +673,6 @@ export default function BookingDetailPage() {
               </div>
             )}
 
-            {/* Méthode de paiement */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               {(['mobile_money', 'card'] as const).map((method) => (
                 <button
