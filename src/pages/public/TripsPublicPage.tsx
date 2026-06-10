@@ -245,7 +245,6 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 }
 
 // ─── Trip Card ─────────────────────────────────────────────────────────────
-
 interface TripCardProps {
   trip:           Trip
   onBook:         (trip: Trip) => void
@@ -260,6 +259,7 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
   const prixParKg = (trip.price_per_kg / 100).toFixed(2)
   const hasPickup   = !!trip.pickup_location
   const hasDelivery = !!trip.delivery_location
+  const traveler    = trip.user
 
   return (
     <Card as="article" className="flex flex-col gap-4">
@@ -290,12 +290,39 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
           <span className="text-gray-300" aria-hidden>·</span>
           <span>{kgDispo} kg dispo</span>
         </div>
-        {trip.user?.full_name && (
-          <span className="text-gray-400 text-xs">
-            Voyageur : <span className="text-gray-600 font-medium">{trip.user.full_name}</span>
-          </span>
-        )}
       </div>
+
+      {/* Badge voyageur */}
+      {traveler && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[12px] border border-gray-100">
+          {/* Avatar */}
+          <div className="w-9 h-9 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-sm font-bold shrink-0">
+            {traveler.first_name?.[0]?.toUpperCase() ?? '?'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {traveler.first_name} {traveler.last_name?.[0]}.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {traveler.kyc_verified && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-200">
+                  🛡️ KYC vérifié
+                </span>
+              )}
+              {traveler.trips_count > 0 && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded-full border border-blue-200">
+                  📦 {traveler.trips_count} trajet{traveler.trips_count > 1 ? 's' : ''}
+                </span>
+              )}
+              {traveler.member_since && (
+                <span className="text-[10px] text-gray-400">
+                  Membre {traveler.member_since}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Badges pickup/delivery */}
       {(hasPickup || hasDelivery) && (

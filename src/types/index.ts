@@ -27,6 +27,9 @@ export interface UserResource {
   is_premium: boolean;
   plan: PlanResource | null;
   created_at: string;
+  trips_count:  number
+  kyc_verified: boolean
+  member_since: string
 }
 
 // ── Location ──────────────────────────────────────────────────────────────────
