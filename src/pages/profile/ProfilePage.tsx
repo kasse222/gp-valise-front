@@ -69,8 +69,11 @@ function FileUploadField({
       setFileName(file.name)
       onUploaded(path)
       toast.success(`${label} uploadé.`)
-    } catch {
-      toast.error(`Erreur lors de l'upload de ${label}.`)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+        ?? err?.response?.data?.errors?.file?.[0]
+        ?? `Erreur lors de l'upload de ${label}.`
+      toast.error(msg)
     } finally {
       setUploading(false)
     }
