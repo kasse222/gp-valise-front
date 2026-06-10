@@ -53,7 +53,11 @@ export default function CreateTripPage() {
       toast.success('Trajet créé avec succès !')
       navigate('/traveler/trips')
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
+    onError: (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
+      if (error.response?.data?.errors?.kyc) {
+        navigate('/traveler/profile', { state: { kycRequired: true } })
+        return
+      }
       toast.error(error.response?.data?.message ?? 'Une erreur est survenue')
     },
   })

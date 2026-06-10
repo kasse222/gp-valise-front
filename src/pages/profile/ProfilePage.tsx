@@ -9,6 +9,7 @@ import { getKyc, submitKyc, uploadFile } from '@/api/kyc'
 import type { KycRequest } from '@/api/kyc'
 import { useAuthStore } from '@/store/authStore'
 import { COUNTRIES } from '@/lib/countries'
+import { useLocation } from 'react-router-dom'
 
 // ─── KYC Status Banner ─────────────────────────────────────────────────────
 
@@ -184,6 +185,8 @@ function KycForm({ onSubmitted }: { onSubmitted: () => void }) {
 export default function ProfilePage() {
   const user        = useAuthStore((s) => s.user)
 
+  const location = useLocation()
+  const kycRequired = location.state?.kycRequired === true
   const [firstName, setFirstName] = useState(user?.first_name ?? '')
   const [lastName,  setLastName]  = useState(user?.last_name  ?? '')
   const [phone,     setPhone]     = useState(user?.phone      ?? '')
@@ -306,7 +309,12 @@ export default function ProfilePage() {
               Votre dossier est en cours d'examen. Vous serez notifié par email dès qu'il sera traité.
             </p>
           )}
-
+          {kycRequired && !kycApproved && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-[14px] flex items-start gap-3 text-sm text-amber-800">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+              <span>Vérification d'identité requise avant de publier un trajet. Soumettez votre dossier ci-dessous.</span>
+            </div>
+          )}
           {showKycForm && (
             <KycForm onSubmitted={() => refetchKyc()} />
           )}
