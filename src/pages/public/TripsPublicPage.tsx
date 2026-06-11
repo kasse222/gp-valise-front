@@ -388,19 +388,16 @@ export default function TripsPublicPage() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
 
   const { data: trips, isLoading, isError } = useQuery<Trip[]>({
-    queryKey:  ['trips-public'],
-    queryFn:   getTrips,
+    queryKey:  ['trips-public', searchDeparture, searchDestination, searchDate],
+    queryFn:   () => getTrips({
+      departure:    searchDeparture   || undefined,
+      destination:  searchDestination || undefined,
+      date:         searchDate        || undefined,
+    }),
     staleTime: 30_000,
   })
 
-  const filteredTrips = (trips ?? []).filter((trip) => {
-    const dep  = searchDeparture.toLowerCase()
-    const dest = searchDestination.toLowerCase()
-    if (dep  && !trip.departure.toLowerCase().includes(dep))    return false
-    if (dest && !trip.destination.toLowerCase().includes(dest)) return false
-    if (searchDate && trip.date && !trip.date.startsWith(searchDate)) return false
-    return true
-  })
+  const displayTrips = trips ?? []
 
   const handleSearch = () => {
     const params = new URLSearchParams()
@@ -472,18 +469,18 @@ export default function TripsPublicPage() {
             <p className="text-gray-400 text-sm mt-1">Vérifiez votre connexion et réessayez.</p>
           </div>
         )}
-        {!isLoading && !isError && filteredTrips.length === 0 && (
+        {!isLoading && !isError && displayTrips.length === 0 && (
           <EmptyState icon={Plane} title="Aucun trajet trouvé"
             description="Aucun trajet ne correspond à votre recherche. Essayez d'autres critères."
             action={<Button variant="secondary" size="sm" onClick={() => { setSearchDeparture(''); setSearchDestination(''); setSearchDate('') }}>Voir tous les trajets</Button>} />
         )}
-        {!isLoading && !isError && filteredTrips.length > 0 && (
+        {!isLoading && !isError && displayTrips.length > 0 && (
           <>
             <p className="text-sm text-gray-500 mb-4">
-              {filteredTrips.length} trajet{filteredTrips.length > 1 ? 's' : ''} disponible{filteredTrips.length > 1 ? 's' : ''}
+              {displayTrips.length} trajet{displayTrips.length > 1 ? 's' : ''} disponible{displayTrips.length > 1 ? 's' : ''}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {filteredTrips.map((trip) => (
+              {displayTrips.map((trip) => (
                 <TripCard key={trip.id} trip={trip} onBook={setSelectedTrip}
                   canBook={canBook} isLoggedIn={isLoggedIn} isTravelerUser={isTravelerUser} />
               ))}
