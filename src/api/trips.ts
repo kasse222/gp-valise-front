@@ -7,13 +7,23 @@ const publicClient = axios.create({
   headers: { Accept: 'application/json' },
 })
 
-export async function getTrips(): Promise<Trip[]> {
-  const { data } = await publicClient.get<{ data: Trip[] }>('/trips')
-  return data.data
+export interface TripFilters {
+  departure?:     string
+  destination?:   string
+  date?:          string
+  price_max?:     number
+  capacity_min?:  number
 }
 
-export async function getTrip(id: number): Promise<Trip> {
-  const { data } = await client.get<{ data: Trip }>(`/trips/${id}`)
+export async function getTrips(filters?: TripFilters): Promise<Trip[]> {
+  const params = new URLSearchParams()
+  if (filters?.departure)    params.set('departure',    filters.departure)
+  if (filters?.destination)  params.set('destination',  filters.destination)
+  if (filters?.date)         params.set('date',         filters.date)
+  if (filters?.price_max)    params.set('price_max',    String(filters.price_max))
+  if (filters?.capacity_min) params.set('capacity_min', String(filters.capacity_min))
+
+  const { data } = await publicClient.get<{ data: Trip[] }>('/trips', { params })
   return data.data
 }
 
