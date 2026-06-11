@@ -196,7 +196,7 @@ export default function LandingPage() {
 
   const { data: trips, isLoading } = useQuery({
     queryKey: ['trips-public'],
-    queryFn:  getTrips,
+    queryFn: () => getTrips(),
     staleTime: 60_000,
   })
   const previewTrips = trips?.slice(0, 3) ?? []

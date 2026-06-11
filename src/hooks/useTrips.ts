@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { getTrips, getTrip } from "@/api/trips";
+import { getTrips } from "@/api/trips";
+import client from "@/api/client";
 import type { Trip } from "@/types";
 
 export function useTrips() {
   return useQuery<Trip[]>({
     queryKey: ["trips"],
-    queryFn: getTrips,
+    queryFn:  () => getTrips(),
     staleTime: 0,
   });
 }
@@ -13,7 +14,10 @@ export function useTrips() {
 export function useTrip(id: number) {
   return useQuery<Trip>({
     queryKey: ["trip", id],
-    queryFn: () => getTrip(id),
+    queryFn:  async () => {
+      const { data } = await client.get<{ data: Trip }>(`/trips/${id}`)
+      return data.data
+    },
     staleTime: 0,
     enabled: id > 0,
   });
