@@ -223,11 +223,17 @@ export default function ProfilePage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto flex flex-col gap-6">
 
-      {/* ── Profil ─────────────────────────────────────────────────── */}
+      {/* Hero */}
+      <div className="bg-[#1B3A6B] rounded-[20px] px-6 py-6 text-white">
+        <h1 className="text-xl font-bold">Mon profil</h1>
+        <p className="text-white/70 text-sm mt-1">{user.first_name} {user.last_name} · {user.email}</p>
+      </div>
+
+      {/* ── Informations ─────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <User className="w-5 h-5 text-[#1B3A6B]" aria-hidden />
-          <h1 className="text-xl font-bold text-gray-900">Mon profil</h1>
+          <h1 className="text-xl font-bold text-gray-900">Informations personnelles</h1>
         </div>
 
         <Card>
