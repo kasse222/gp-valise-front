@@ -5,11 +5,11 @@ import { Toaster } from 'react-hot-toast'
 
 import LandingPage from '@/pages/public/LandingPage'
 import TripsPublicPage from '@/pages/public/TripsPublicPage'
+import TripDetailPublicPage from '@/pages/public/TripDetailPublicPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import SenderDashboard from '@/pages/sender/DashboardPage'
 import TravelerDashboard from '@/pages/traveler/DashboardPage'
-
 import PaymentSuccessPage from '@/pages/payment/PaymentSuccessPage'
 import PaymentCancelPage from '@/pages/payment/PaymentCancelPage'
 
@@ -46,46 +46,19 @@ export default function App() {
             {/* Landing */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/trips" element={<TripsPublicPage />} />
+            <Route path="/trips/:id" element={<TripDetailPublicPage />} />
 
-            {/* Public */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <RegisterPage />
-                </PublicRoute>
-              }
-            />
+            {/* Auth */}
+            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
 
             {/* Sender */}
-            <Route
-              path="/sender/*"
-              element={
-                <PrivateRoute>
-                  <SenderDashboard />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/sender/*" element={<PrivateRoute><SenderDashboard /></PrivateRoute>} />
 
             {/* Traveler */}
-            <Route
-              path="/traveler/*"
-              element={
-                <PrivateRoute>
-                  <TravelerDashboard />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/traveler/*" element={<PrivateRoute><TravelerDashboard /></PrivateRoute>} />
 
-            {/* Payment callbacks — public, sans token */}
+            {/* Payment callbacks */}
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 

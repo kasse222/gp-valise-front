@@ -64,3 +64,8 @@ export async function updateTrip(
   const { data } = await client.put<{ data: Trip }>(`/trips/${id}`, payload)
   return data.data
 }
+
+export async function getTrip(id: number): Promise<Trip> {
+  const { data } = await publicClient.get<{ data: Trip }>(`/trips/${id}`)
+  return data.data
+}
