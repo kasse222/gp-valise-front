@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { Plane, ArrowLeft, X, Calendar, MapPin } from 'lucide-react'
+import { Plane, ArrowLeft, X, Calendar, MapPin, RotateCcw } from 'lucide-react'
 import { CityInputInline } from '@/components/ui/CitySelect'
 import toast from 'react-hot-toast'
 
@@ -12,6 +12,10 @@ import type { Trip } from '@/types'
 import { useAuthStore, isSender, isTraveler } from '@/store/authStore'
 import { formatDate, formatAmount } from '@/lib/utils'
 import { Button, Card, EmptyState, SkeletonList } from '@/components/ui'
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+const today = new Date().toISOString().split('T')[0]
 
 // ─── Booking Modal ─────────────────────────────────────────────────────────
 
@@ -41,30 +45,49 @@ const DEFAULT_ITEM: ContentItem = { category: 'other', description: '', photo_pa
 function BookingModal({ trip, onClose }: BookingModalProps) {
   const navigate       = useNavigate()
   const [kgReserved,   setKgReserved]  = useState(1)
+  const [kgInput,      setKgInput]     = useState('1')   // ← Sileye #5 : saisie directe
   const [comment,      setComment]     = useState('')
   const [items,        setItems]       = useState<ContentItem[]>([{ ...DEFAULT_ITEM }])
+
+  // Destinataire — Instant Booking obligatoire
+  const [recipientName,  setRecipientName]  = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [recipientEmail, setRecipientEmail] = useState('')
 
   const maxKg      = trip.grams_disponible / 1000
   const pricePerKg = trip.price_per_kg / 100
   const totalCents = Math.round(kgReserved * trip.price_per_kg)
 
+  // Sileye #5 — sync slider ↔ input texte
+  const handleSliderChange = (val: number) => {
+    setKgReserved(val)
+    setKgInput(String(val))
+  }
+  const handleKgInputChange = (raw: string) => {
+    setKgInput(raw)
+    const num = parseFloat(raw)
+    if (!isNaN(num) && num >= 0.5 && num <= maxKg) {
+      setKgReserved(Math.round(num * 2) / 2) // arrondi 0.5
+    }
+  }
+
   const updateItem = (index: number, field: keyof ContentItem, value: string | null) => {
     setItems((prev) => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
   }
 
-  const addItem = () => setItems((prev) => [...prev, { ...DEFAULT_ITEM }])
-
+  const addItem    = () => setItems((prev) => [...prev, { ...DEFAULT_ITEM }])
   const removeItem = (index: number) => {
     if (items.length === 1) return
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // Description synthétique = liste des descriptions
   const syntheticDescription = items.map((i) => i.description).filter(Boolean).join(', ')
-  // Catégorie principale = catégorie du premier article
-  const mainCategory = items[0]?.category ?? 'other'
+  const mainCategory         = items[0]?.category ?? 'other'
 
   const canSubmit = items.every((i) => i.description.trim().length > 0)
+    && recipientName.trim().length > 0
+    && recipientPhone.trim().length > 0
+    && recipientEmail.includes('@')
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -90,13 +113,16 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
       })
 
       return createBooking({
-        trip_id: trip.id,
-        items:   [{ luggage_id: luggage.id, kg_reserved: Math.round(kgReserved * 1000) }],
-        comment: comment || undefined,
+        trip_id:         trip.id,
+        items:           [{ luggage_id: luggage.id, kg_reserved: Math.round(kgReserved * 1000) }],
+        comment:         comment || undefined,
+        recipient_name:  recipientName,
+        recipient_phone: recipientPhone,
+        recipient_email: recipientEmail,
       })
     },
     onSuccess: (booking) => {
-      toast.success('Réservation créée avec succès !')
+      toast.success('Réservation créée ! Procédez au paiement.')
       navigate(`/sender/bookings/${booking.id}`)
     },
     onError: (err: unknown) => {
@@ -137,13 +163,13 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
           {trip.pickup_location && (
             <div className="mt-3 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span>Point de dépôt disponible à <strong>{trip.pickup_location.city}</strong>{trip.pickup_location.revealed && trip.pickup_location.address ? ` — ${trip.pickup_location.address}` : ' (adresse exacte après paiement)'}</span>
+              <span>Point de dépôt à <strong>{trip.pickup_location.city}</strong>{trip.pickup_location.revealed && trip.pickup_location.address ? ` — ${trip.pickup_location.address}` : ' (adresse exacte après paiement)'}</span>
             </div>
           )}
           {trip.delivery_location && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-[#1B3A6B] bg-[#EBF4FF] rounded-[8px] px-3 py-2">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span>Point de remise disponible à <strong>{trip.delivery_location.city}</strong>{trip.delivery_location.revealed && trip.delivery_location.address ? ` — ${trip.delivery_location.address}` : ' (adresse exacte après paiement)'}</span>
+              <span>Point de remise à <strong>{trip.delivery_location.city}</strong>{trip.delivery_location.revealed && trip.delivery_location.address ? ` — ${trip.delivery_location.address}` : ' (adresse exacte après paiement)'}</span>
             </div>
           )}
         </div>
@@ -151,17 +177,22 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
         <div className="overflow-y-auto flex-1">
           <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="px-6 py-5 flex flex-col gap-5">
 
-            {/* Poids total */}
+            {/* Poids — Sileye #5 : slider + saisie directe */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700 select-none">Poids total de l'envoi (kg)</label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <input type="range" min={0.5} max={maxKg} step={0.5} value={kgReserved}
-                  onChange={(e) => setKgReserved(Number(e.target.value))}
+                  onChange={(e) => handleSliderChange(Number(e.target.value))}
                   aria-label="Poids réservé en kg"
                   className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
-                <span className="min-w-[4.5rem] text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-3 py-1.5 rounded-[10px] font-mono">
-                  {kgReserved} kg
-                </span>
+                {/* Saisie directe à droite du slider */}
+                <input
+                  type="number" min={0.5} max={maxKg} step={0.5}
+                  value={kgInput}
+                  onChange={(e) => handleKgInputChange(e.target.value)}
+                  aria-label="Saisir le poids en kg"
+                  className="w-20 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] font-mono border border-[#1B3A6B]/20 focus:outline-none focus:border-[#1B3A6B]"
+                />
               </div>
               <div className="flex justify-between text-xs text-gray-400"><span>0.5 kg</span><span>{maxKg.toFixed(1)} kg</span></div>
             </div>
@@ -174,7 +205,6 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
                 </label>
                 <span className="text-xs text-gray-400">{items.length} article{items.length > 1 ? 's' : ''}</span>
               </div>
-
               <div className="flex flex-col gap-3">
                 {items.map((item, index) => (
                   <div key={index} className="relative flex flex-col gap-2 p-3 bg-gray-50 rounded-[12px] border border-gray-200">
@@ -185,36 +215,49 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
                         <X className="w-3.5 h-3.5" />
                       </button>
                     )}
-
                     <div className="flex gap-2 items-center">
-                      <select
-                        value={item.category}
+                      <select value={item.category}
                         onChange={(e) => updateItem(index, 'category', e.target.value)}
-                        className="flex-shrink-0 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#1B3A6B] transition-all"
-                      >
+                        className="flex-shrink-0 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm text-gray-900 bg-white focus:outline-none focus:border-[#1B3A6B] transition-all">
                         {LUGGAGE_CATEGORIES.map((c) => (
                           <option key={c.value} value={c.value}>{c.label}</option>
                         ))}
                       </select>
-
-                      <input
-                        type="text"
-                        value={item.description}
+                      <input type="text" value={item.description}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                         placeholder="Ex : iPhone 13, vêtements d'hiver…"
                         required
-                        className="flex-1 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] transition-all text-gray-900 placeholder-gray-400"
-                      />
+                        className="flex-1 min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] transition-all text-gray-900 placeholder-gray-400" />
                     </div>
                   </div>
                 ))}
               </div>
-
               <button type="button" onClick={addItem}
                 className="flex items-center gap-1.5 self-start text-sm text-[#1B3A6B] font-medium hover:underline">
                 <span className="text-lg leading-none">+</span>
                 Ajouter un article
               </button>
+            </div>
+
+            {/* Destinataire — obligatoire Instant Booking */}
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Destinataire <span className="text-red-500" aria-hidden>*</span>
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  La personne qui récupère le colis à destination recevra un QR code et un code secret.
+                </p>
+              </div>
+              <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)}
+                placeholder="Nom complet du destinataire" required
+                className="w-full min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] text-gray-900 placeholder-gray-400" />
+              <input type="tel" value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)}
+                placeholder="Téléphone du destinataire (ex: +221771234567)" required
+                className="w-full min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] text-gray-900 placeholder-gray-400" />
+              <input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="Email du destinataire" required
+                className="w-full min-h-[40px] px-3 py-2 rounded-[8px] border border-gray-300 text-sm focus:outline-none focus:border-[#1B3A6B] text-gray-900 placeholder-gray-400" />
             </div>
 
             {/* Commentaire */}
@@ -235,7 +278,9 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 
             <div className="flex gap-3 pt-1">
               <Button type="button" variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
-              <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending} disabled={!canSubmit}>Confirmer la réservation</Button>
+              <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending} disabled={!canSubmit}>
+                Confirmer la réservation
+              </Button>
             </div>
           </form>
         </div>
@@ -245,6 +290,7 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 }
 
 // ─── Trip Card ─────────────────────────────────────────────────────────────
+
 interface TripCardProps {
   trip:           Trip
   onBook:         (trip: Trip) => void
@@ -263,7 +309,6 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
 
   return (
     <Card as="article" className="flex flex-col gap-4">
-      {/* Trajet */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 font-bold text-gray-900 text-sm">
           <span>{trip.departure}</span>
@@ -277,7 +322,6 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
         )}
       </div>
 
-      {/* Infos */}
       <div className="flex flex-col gap-1 text-sm text-gray-500">
         {trip.date && (
           <span className="flex items-center gap-1.5">
@@ -292,10 +336,8 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
         </div>
       </div>
 
-      {/* Badge voyageur */}
       {traveler && (
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[12px] border border-gray-100">
-          {/* Avatar */}
           <div className="w-9 h-9 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-sm font-bold shrink-0">
             {traveler.first_name?.[0]?.toUpperCase() ?? '?'}
           </div>
@@ -315,16 +357,13 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
                 </span>
               )}
               {traveler.member_since && (
-                <span className="text-[10px] text-gray-400">
-                  Membre {traveler.member_since}
-                </span>
+                <span className="text-[10px] text-gray-400">Membre {traveler.member_since}</span>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Badges pickup/delivery */}
       {(hasPickup || hasDelivery) && (
         <div className="flex flex-col gap-1.5">
           {hasPickup && (
@@ -342,7 +381,6 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
         </div>
       )}
 
-      {/* CTA */}
       {canBook && (
         <Button variant="primary" size="sm" onClick={() => onBook(trip)} className="w-full mt-auto">
           Réserver
@@ -386,6 +424,15 @@ export default function TripsPublicPage() {
   const [searchDestination, setSearchDestination] = useState(searchParams.get('destination') ?? '')
   const [searchDate,        setSearchDate]        = useState(searchParams.get('date')        ?? '')
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
+
+  const hasFilters = !!(searchDeparture || searchDestination || searchDate)
+
+  const resetFilters = () => {
+    setSearchDeparture('')
+    setSearchDestination('')
+    setSearchDate('')
+    navigate('/trips')
+  }
 
   const { data: trips, isLoading, isError } = useQuery<Trip[]>({
     queryKey:  ['trips-public', searchDeparture, searchDestination, searchDate],
@@ -443,9 +490,11 @@ export default function TripsPublicPage() {
             <div className="flex items-center flex-1 border border-gray-200 rounded-[10px] px-4 bg-gray-50 min-h-[48px]">
               <CityInputInline value={searchDestination} onChange={setSearchDestination} placeholder="Destination" />
             </div>
+            {/* Sileye #2 — date min = aujourd'hui */}
             <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-[10px] px-4 py-3 bg-gray-50 min-h-[48px]">
               <Calendar className="h-4 w-4 text-gray-400 shrink-0" aria-hidden />
               <input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)}
+                min={today}
                 aria-label="Date de départ" className="bg-transparent text-sm text-gray-700 outline-none w-full" />
             </div>
             <Button variant="primary" onClick={handleSearch} className="sm:self-stretch px-6 rounded-[10px]">
@@ -453,10 +502,13 @@ export default function TripsPublicPage() {
             </Button>
           </div>
 
-          {(searchDeparture || searchDestination || searchDate) && (
-            <button onClick={() => { setSearchDeparture(''); setSearchDestination(''); setSearchDate(''); navigate('/trips') }}
-              className="mt-3 text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-              <X className="h-3 w-3" aria-hidden />
+          {/* Sileye #2 — bouton reset plus visible */}
+          {hasFilters && (
+            <button
+              onClick={resetFilters}
+              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
               Réinitialiser les filtres
             </button>
           )}
@@ -472,7 +524,7 @@ export default function TripsPublicPage() {
         {!isLoading && !isError && displayTrips.length === 0 && (
           <EmptyState icon={Plane} title="Aucun trajet trouvé"
             description="Aucun trajet ne correspond à votre recherche. Essayez d'autres critères."
-            action={<Button variant="secondary" size="sm" onClick={() => { setSearchDeparture(''); setSearchDestination(''); setSearchDate('') }}>Voir tous les trajets</Button>} />
+            action={<Button variant="secondary" size="sm" onClick={resetFilters}>Voir tous les trajets</Button>} />
         )}
         {!isLoading && !isError && displayTrips.length > 0 && (
           <>

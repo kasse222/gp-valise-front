@@ -14,6 +14,13 @@ import { createTrip } from '@/api/trips'
 
 interface Coords { lat: number; lng: number }
 
+// min datetime-local = maintenant (arrondi à la minute)
+const nowLocal = () => {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  return d.toISOString().slice(0, 16)
+}
+
 export default function CreateTripPage() {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
@@ -45,6 +52,7 @@ export default function CreateTripPage() {
   // Sync pickup/delivery city avec departure/destination
   useEffect(() => { if (departure)   setPickupCity(departure)   }, [departure])
   useEffect(() => { if (destination) setDeliveryCity(destination) }, [destination])
+
   // Restaurer le trajet en attente après retour de KYC
   useEffect(() => {
     const pending = sessionStorage.getItem('pendingTrip')
@@ -64,7 +72,16 @@ export default function CreateTripPage() {
     } catch {}
   }, [])
 
-    const mutation = useMutation({
+  // ── Sileye #8 : validation départ ≠ arrivée ──────────────────────────
+  const sameRoute =
+    !!departureCountry && !!destCountry && departureCountry === destCountry &&
+    !!departure && !!destination &&
+    departure.trim().toLowerCase() === destination.trim().toLowerCase()
+
+
+
+
+  const mutation = useMutation({
     mutationFn: createTrip,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trips'] })
@@ -72,23 +89,29 @@ export default function CreateTripPage() {
       navigate('/traveler/trips')
     },
     onError: (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
-    if (error.response?.data?.errors?.kyc) {
-      // Sauvegarder l'état du formulaire
-      sessionStorage.setItem('pendingTrip', JSON.stringify({
-        departure, destination, date,
-        availableKg, pricePerKg, typeTrip,
-        pickupAddress, pickupCity, pickupInstructions,
-        deliveryAddress, deliveryCity, deliveryInstructions,
-      }))
-      navigate('/traveler/profile', { state: { kycRequired: true } })
-      return
-    }
-    toast.error(error.response?.data?.message ?? 'Une erreur est survenue')
-  },
+      if (error.response?.data?.errors?.kyc) {
+        sessionStorage.setItem('pendingTrip', JSON.stringify({
+          departure, destination, date,
+          availableKg, pricePerKg, typeTrip,
+          pickupAddress, pickupCity, pickupInstructions,
+          deliveryAddress, deliveryCity, deliveryInstructions,
+        }))
+        navigate('/traveler/profile', { state: { kycRequired: true } })
+        return
+      }
+      toast.error(error.response?.data?.message ?? 'Une erreur est survenue')
+    },
   })
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    // Guard départ = arrivée
+    if (sameRoute) {
+      toast.error('Le départ et la destination ne peuvent pas être identiques.')
+      return
+    }
+
     mutation.mutate({
       departure,
       destination,
@@ -126,7 +149,6 @@ export default function CreateTripPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-        {/* Informations trajet */}
         <Card>
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Informations du trajet</h2>
           <div className="flex flex-col gap-5">
@@ -167,7 +189,22 @@ export default function CreateTripPage() {
               />
             </div>
 
-            <Input label="Date et heure de départ" type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} />
+            {/* Sileye #8 — alerte départ = arrivée */}
+            {sameRoute && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
+                ⚠️ Le départ et la destination ne peuvent pas être identiques.
+              </div>
+            )}
+
+            {/* Sileye #2 — date passée bloquée */}
+            <Input
+              label="Date et heure de départ"
+              type="datetime-local"
+              required
+              value={date}
+              min={nowLocal()}
+              onChange={(e) => setDate(e.target.value)}
+            />
 
             {/* Capacité */}
             <div className="flex flex-col gap-2">
@@ -214,10 +251,8 @@ export default function CreateTripPage() {
           </div>
         </Card>
 
-        {/* 2 cartes */}
+        {/* Pickup + Delivery */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* 📦 Pickup */}
           <Card>
             <div className="flex items-center gap-2 mb-1">
               <Package className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
@@ -245,7 +280,6 @@ export default function CreateTripPage() {
             </div>
           </Card>
 
-          {/* 🎯 Delivery */}
           <Card>
             <div className="flex items-center gap-2 mb-1">
               <Home className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
@@ -274,9 +308,8 @@ export default function CreateTripPage() {
           </Card>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-4 pb-8">
-          <Button type="submit" variant="primary" loading={mutation.isPending}>
+          <Button type="submit" variant="primary" loading={mutation.isPending} disabled={sameRoute}>
             Publier le trajet
           </Button>
           <Link to="/traveler/trips" className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
@@ -287,5 +320,3 @@ export default function CreateTripPage() {
     </div>
   )
 }
-
-interface Coords { lat: number; lng: number }
