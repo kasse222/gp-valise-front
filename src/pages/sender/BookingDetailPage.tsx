@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Package, AlertCircle, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Package, AlertCircle, ExternalLink, MapPin } from 'lucide-react'
 
 import { Button, Card, Spinner, StatusBadge, EmptyState } from '@/components/ui'
 import { PickupLocationCard } from '@/components/ui/PickupLocationCard'
@@ -156,15 +156,19 @@ export default function TravelerBookingDetailPage() {
                   )}
 
                   {/* Header item */}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-900">
-                      {item.luggage?.tracking_id ?? `Item #${item.id}`}
-                    </span>
-                    <span className="text-gray-500 font-mono">{formatAmount(item.price, 'EUR')}</span>
-                  </div>
-
-                  <div className="text-xs text-gray-500">
-                    {(item.kg_reserved / 1000).toFixed(1)} kg réservé
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {item.luggage?.description ?? `Colis #${item.id}`}
+                      </p>
+                      <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">
+                        {item.luggage?.tracking_id?.slice(0, 8)}…
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        ⚖️ {(item.kg_reserved / 1000).toFixed(1)} kg
+                      </p>
+                    </div>
+                    <span className="font-bold text-gray-900 font-mono shrink-0">{formatAmount(item.price, 'EUR')}</span>
                   </div>
 
                   {/* Content items */}
@@ -176,6 +180,15 @@ export default function TravelerBookingDetailPage() {
                         </span>
                       ))}
                     </div>
+                  )}
+
+                  {/* Lien suivi colis */}
+                  {item.luggage?.tracking_id && (
+                    <Link to={`/track/${item.luggage.tracking_id}`}
+                      className="inline-flex items-center gap-2 self-start px-3 py-2 bg-[#EBF4FF] hover:bg-[#1B3A6B] hover:text-white text-[#1B3A6B] text-xs font-semibold rounded-[8px] transition-colors">
+                      <MapPin className="w-3.5 h-3.5" aria-hidden />
+                      Suivre ce colis
+                    </Link>
                   )}
                 </div>
               )

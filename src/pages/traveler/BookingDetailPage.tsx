@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Package, AlertCircle, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Package, AlertCircle, ExternalLink, MapPin, Truck } from 'lucide-react'
 
 import { Button, Card, Spinner, StatusBadge, EmptyState } from '@/components/ui'
 import { PickupLocationCard } from '@/components/ui/PickupLocationCard'
@@ -7,14 +7,18 @@ import type { BookingStatusCode } from '@/components/ui/Badge'
 import { useBooking } from '@/hooks/useBooking'
 import { formatAmount, formatDate } from '@/lib/utils'
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  document: '📄', phone: '📱', computer: '💻',
+  clothes: '👕', cosmetics: '💄', medicine: '💊', other: '📦',
+}
+
 export default function TravelerBookingDetailPage() {
-  const { id }      = useParams<{ id: string }>()
-  const bookingId   = Number(id)
+  const { id }    = useParams<{ id: string }>()
+  const bookingId = Number(id)
 
   const { data: booking, isLoading, isError, refetch } = useBooking(bookingId)
 
   if (isLoading) return <div className="p-8 flex justify-center"><Spinner /></div>
-
   if (isError || !booking) {
     return (
       <div className="p-8 text-center">
@@ -29,26 +33,35 @@ export default function TravelerBookingDetailPage() {
   const totalAmount = booking.items.reduce((sum, item) => sum + item.price, 0)
   const status      = booking.status as BookingStatusCode
   const isExpired   = status === 'expiree'
+  const isInTransit = (status as string) === 'en_transit'
+  const isDelivered = status === 'livree' || status === 'termine'
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
 
       {/* Back */}
-      <Link
-        to={`/traveler/trips/${booking.trip_id}`}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A6B] mb-6 transition-colors"
-      >
+      <Link to={`/traveler/trips/${booking.trip_id}`}
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A6B] mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" aria-hidden />
         Retour au trajet
       </Link>
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Réservation #{booking.id}</h1>
-          <p className="text-sm text-gray-500 mt-1">{formatDate(booking.created_at)}</p>
+      {/* Hero */}
+      <div className="bg-[#1B3A6B] rounded-[20px] px-6 py-6 mb-6 text-white">
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold">Réservation #{booking.id}</h1>
+            <p className="text-white/70 text-sm mt-0.5">{formatDate(booking.created_at)}</p>
+          </div>
+          <StatusBadge code={status} />
         </div>
-        <StatusBadge code={status} />
+        {/* Trajet inline dans le hero */}
+        <div className="flex items-center gap-2 text-white/90 font-semibold">
+          <span>{booking.trip?.departure ?? '—'}</span>
+          <ArrowRight className="w-4 h-4 text-white/50 shrink-0" aria-hidden />
+          <span>{booking.trip?.destination ?? '—'}</span>
+        </div>
+        {tripDate && <p className="text-white/60 text-xs mt-1">📅 {tripDate} · ⚖️ {kgDisplay}</p>}
       </div>
 
       {/* Banner expirée */}
@@ -59,78 +72,62 @@ export default function TravelerBookingDetailPage() {
         </div>
       )}
 
+      {/* Banner en transit */}
+      {isInTransit && (
+        <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-[14px] flex items-start gap-3 text-sm text-indigo-800">
+          <Truck className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-semibold">Colis en transit ✈️</p>
+            <p className="text-xs mt-0.5 opacity-80">Scannez le QR ou saisissez le code secret du destinataire à la livraison.</p>
+          </div>
+        </div>
+      )}
+
       {/* Expéditeur */}
       <Card className="mb-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Expéditeur</h2>
-        {booking.user?.email ? (
-          <p className="text-sm text-gray-900">{booking.user.email}</p>
+        {booking.user ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-sm font-bold shrink-0">
+              {(booking.user.first_name ?? booking.user.email)?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {booking.user.first_name ? `${booking.user.first_name} ${booking.user.last_name ?? ''}`.trim() : booking.user.email}
+              </p>
+              {booking.user.phone && <p className="text-xs text-gray-500 mt-0.5">📞 {booking.user.phone}</p>}
+            </div>
+          </div>
         ) : (
-          <p className="text-sm text-gray-500 italic">
-            Informations non disponibles (réservation expirée ou annulée)
-          </p>
+          <p className="text-sm text-gray-500 italic">Informations non disponibles</p>
         )}
         <div className="mt-3">
-          <Link
-            to={`/traveler/trips/${booking.trip_id}`}
-            className="inline-flex items-center gap-1 text-xs text-[#1B3A6B] hover:underline"
-          >
+          <Link to={`/traveler/trips/${booking.trip_id}`}
+            className="inline-flex items-center gap-1 text-xs text-[#1B3A6B] hover:underline">
             Voir le détail du trajet <ExternalLink className="w-3 h-3" aria-hidden />
           </Link>
         </div>
       </Card>
 
-      {/* Trajet */}
-      <Card className="mb-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Trajet</h2>
-        <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
-          <span>{booking.trip?.departure ?? '—'}</span>
-          <ArrowRight className="w-5 h-5 text-gray-400" aria-hidden />
-          <span>{booking.trip?.destination ?? '—'}</span>
-        </div>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          {tripDate && (
-            <div>
-              <dt className="text-gray-500">Date du trajet</dt>
-              <dd className="font-medium text-gray-900 mt-0.5">{tripDate}</dd>
-            </div>
-          )}
-          <div>
-            <dt className="text-gray-500">Poids réservé</dt>
-            <dd className="font-medium text-gray-900 mt-0.5">{kgDisplay}</dd>
-          </div>
-          {booking.comment && (
-            <div className="col-span-2">
-              <dt className="text-gray-500">Commentaire</dt>
-              <dd className="font-medium text-gray-900 mt-0.5">{booking.comment}</dd>
-            </div>
-          )}
-        </dl>
-      </Card>
-
-      {/* ── Pickup Location — TRAVELER peut définir si confirmée ────────── */}
-      <PickupLocationCard
-        bookingId={bookingId}
-        isTraveler={true}
-        bookingStatus={status}
-      />
+      {/* Pickup Location */}
+      <PickupLocationCard bookingId={bookingId} isTraveler={true} bookingStatus={status} />
 
       {/* Gains potentiels */}
       <Card className="mb-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Gains potentiels</h2>
-        <p className="text-sm text-gray-500 mb-1">
-          {isExpired
-            ? 'Montant qui aurait été gagné si la réservation avait été confirmée :'
-            : 'Montant à percevoir après livraison confirmée :'}
+        <p className="text-xs text-gray-400 mb-2">
+          {isExpired ? 'Montant qui aurait été gagné si la réservation avait été confirmée :' :
+           isDelivered ? 'Montant perçu après livraison confirmée :' :
+           'Montant à percevoir après livraison confirmée :'}
         </p>
-        <p className="text-xl font-bold text-[#1B3A6B] font-mono">
+        <p className="text-2xl font-bold text-[#1B3A6B] font-mono">
           {formatAmount(totalAmount, 'EUR')}
         </p>
       </Card>
 
-      {/* Items */}
-{/* Contenu du colis */}
+      {/* Contenu du colis */}
       <Card className="mb-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Contenu du colis</h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Contenu du colis</h2>
         {booking.items.length === 0 ? (
           <EmptyState icon={Package} title="Aucun article" description="Cette réservation ne contient aucun article déclaré." />
         ) : (
@@ -138,33 +135,35 @@ export default function TravelerBookingDetailPage() {
             {booking.items.map((item) => {
               const contentItems = item.luggage?.content_items ?? []
               const photoPath    = item.luggage?.photo_path ?? null
-
-              const CATEGORY_EMOJI: Record<string, string> = {
-                document: '📄', phone: '📱', computer: '💻',
-                clothes: '👕', cosmetics: '💄', medicine: '💊', other: '📦',
-              }
+              const trackingId   = item.luggage?.tracking_id
 
               return (
-                <div key={item.id} className="flex flex-col gap-3 p-3 bg-gray-50 rounded-[12px]">
-                  {/* Photo colis */}
+                <div key={item.id} className="flex flex-col gap-3 p-4 bg-gray-50 rounded-[14px] border border-gray-100">
+
+                  {/* Photo */}
                   {photoPath && (
-                    <img
-                      src={photoPath}
-                      alt="Photo du colis"
-                      className="w-full max-h-48 object-cover rounded-[10px] border border-gray-200"
-                    />
+                    <img src={photoPath} alt="Photo du colis"
+                      className="w-full max-h-48 object-cover rounded-[10px] border border-gray-200" />
                   )}
 
-                  {/* Header item */}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-900">
-                      {item.luggage?.tracking_id ?? `Item #${item.id}`}
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {item.luggage?.description ?? `Colis #${item.id}`}
+                        </span>
+                        <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded-full truncate max-w-[140px]">
+                          {trackingId?.slice(0, 8)}…
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ⚖️ {(item.kg_reserved / 1000).toFixed(1)} kg
+                      </p>
+                    </div>
+                    <span className="font-bold text-gray-900 font-mono shrink-0">
+                      {formatAmount(item.price, 'EUR')}
                     </span>
-                    <span className="text-gray-500 font-mono">{formatAmount(item.price, 'EUR')}</span>
-                  </div>
-
-                  <div className="text-xs text-gray-500">
-                    {(item.kg_reserved / 1000).toFixed(1)} kg réservé
                   </div>
 
                   {/* Content items */}
@@ -176,6 +175,15 @@ export default function TravelerBookingDetailPage() {
                         </span>
                       ))}
                     </div>
+                  )}
+
+                  {/* Lien tracking */}
+                  {trackingId && (
+                    <Link to={`/track/${trackingId}`}
+                      className="inline-flex items-center gap-2 self-start px-3 py-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-xs font-semibold rounded-[8px] transition-colors">
+                      <MapPin className="w-3.5 h-3.5" aria-hidden />
+                      Suivre ce colis
+                    </Link>
                   )}
                 </div>
               )
