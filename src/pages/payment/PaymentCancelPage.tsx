@@ -1,13 +1,16 @@
-import { useSearchParams } from "react-router-dom";
-import { XCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { XCircle } from 'lucide-react'
 
-import { Button, Card } from "@/components/ui";
+import { Button, Card } from '@/components/ui'
+import { useAuthStore, isSender } from '@/store/authStore'
 
 export default function PaymentCancelPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const bookingId = searchParams.get("booking_id");
+  const [searchParams] = useSearchParams()
+  const bookingId = searchParams.get('booking_id')
+  const navigate  = useNavigate()
+  const user      = useAuthStore((s) => s.user)
+
+  const basePath = user && !isSender(user.role) ? '/traveler' : '/sender'
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -27,19 +30,19 @@ export default function PaymentCancelPage() {
           {bookingId && (
             <Button
               variant="primary"
-              onClick={() => navigate(`/sender/bookings/${bookingId}`)}
+              onClick={() => navigate(`${basePath}/bookings/${bookingId}`)}
             >
               Réessayer
             </Button>
           )}
           <Button
             variant="secondary"
-            onClick={() => navigate("/sender/bookings")}
+            onClick={() => navigate(`${basePath}/bookings`)}
           >
             Mes réservations
           </Button>
         </div>
       </Card>
     </div>
-  );
+  )
 }

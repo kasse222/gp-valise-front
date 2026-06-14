@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, AlertCircle, ShieldCheck,
-  ExternalLink, Clock, Search, X, MapPin, Home, MessageSquare, Upload,
+  ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, ShieldAlert,
+  ExternalLink, X, MapPin, Home, MessageSquare, Upload, Search,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { AxiosError } from 'axios'
@@ -47,7 +47,7 @@ function LuggagePhotoUpload({
       setFileName(file.name)
       toast.success('Photo ajoutée.')
     } catch {
-      toast.error('Erreur lors de l\'upload.')
+      toast.error("Erreur lors de l'upload.")
     } finally {
       setUploading(false)
     }
@@ -62,8 +62,7 @@ function LuggagePhotoUpload({
         className={`relative flex items-center justify-center gap-2 min-h-[72px] rounded-[10px] border-2 border-dashed transition-colors cursor-pointer
           ${uploaded ? 'border-emerald-400 bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:border-[#1B3A6B] hover:bg-[#EBF4FF]'}`}
         onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
+        role="button" tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
       >
         <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleChange} disabled={uploading} />
@@ -76,7 +75,8 @@ function LuggagePhotoUpload({
           <div className="flex items-center gap-2 text-sm text-emerald-700">
             <span>✅</span>
             <span className="font-medium truncate max-w-[200px]">{fileName ?? 'Photo ajoutée'}</span>
-            <span className="text-xs text-emerald-500 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); setUploaded(false) }}>Modifier</span>
+            <span className="text-xs text-emerald-500 cursor-pointer hover:underline"
+              onClick={(e) => { e.stopPropagation(); setUploaded(false) }}>Modifier</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -89,19 +89,19 @@ function LuggagePhotoUpload({
   )
 }
 
-// ─── LocationRevealCard ────────────────────────────────────────────────────
+// ─── ApproxMap ─────────────────────────────────────────────────────────────
 
 function ApproxMap({ lat, lng }: { lat: number; lng: number }) {
-  const mapRef     = useRef<HTMLDivElement>(null)
-  const mapInst    = useRef<unknown>(null)
+  const mapRef  = useRef<HTMLDivElement>(null)
+  const mapInst = useRef<unknown>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((window as any).L) { setReady(true); return }
-    const link   = document.createElement('link')
-    link.rel     = 'stylesheet'
-    link.href    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
+    const link  = document.createElement('link')
+    link.rel    = 'stylesheet'
+    link.href   = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
     document.head.appendChild(link)
     const script  = document.createElement('script')
     script.src    = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
@@ -124,6 +124,7 @@ function ApproxMap({ lat, lng }: { lat: number; lng: number }) {
     }).addTo(map)
     mapInst.current = map
     setTimeout(() => map.invalidateSize(), 100)
+    return () => { map.remove(); mapInst.current = null }
   }, [ready, lat, lng])
 
   return (
@@ -138,11 +139,10 @@ function ApproxMap({ lat, lng }: { lat: number; lng: number }) {
   )
 }
 
+// ─── LocationRevealCard ────────────────────────────────────────────────────
+
 function LocationRevealCard({
-  label,
-  icon: Icon,
-  location,
-  isConfirmed,
+  label, icon: Icon, location, isConfirmed,
 }: {
   label:       string
   icon:        React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
@@ -163,7 +163,6 @@ function LocationRevealCard({
         <Icon className="w-4 h-4 text-[#1B3A6B]" aria-hidden />
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</h2>
       </div>
-
       {isConfirmed && location.revealed ? (
         <div className="flex flex-col gap-2">
           <div className="bg-emerald-50 border border-emerald-200 rounded-[10px] p-3 text-sm">
@@ -178,9 +177,7 @@ function LocationRevealCard({
               <p className="font-medium text-gray-900">{location.address}</p>
             )}
             {location.city && <p className="text-gray-500 text-xs mt-0.5 ml-5">{location.city}</p>}
-            {location.instructions && (
-              <p className="text-xs text-gray-500 mt-1.5 ml-5">ℹ️ {location.instructions}</p>
-            )}
+            {location.instructions && <p className="text-xs text-gray-500 mt-1.5 ml-5">ℹ️ {location.instructions}</p>}
           </div>
           {location.latitude && location.longitude && (
             <ApproxMap lat={Number(location.latitude)} lng={Number(location.longitude)} />
@@ -192,17 +189,10 @@ function LocationRevealCard({
             <>
               <div className="bg-[#EBF4FF] rounded-[10px] p-3 text-sm">
                 <p className="text-xs text-[#1B3A6B] font-medium mb-1">📍 Zone approximative (~500m)</p>
-                <p className="text-gray-600 text-xs">
-                  Ville : <span className="font-medium text-gray-900">{location.city}</span>
-                </p>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  L'adresse exacte sera révélée après confirmation du paiement.
-                </p>
+                <p className="text-gray-600 text-xs">Ville : <span className="font-medium text-gray-900">{location.city}</span></p>
+                <p className="text-xs text-gray-400 mt-1.5">L'adresse exacte sera révélée après confirmation du paiement.</p>
               </div>
-              <ApproxMap
-                lat={Number(location.approximate_latitude)}
-                lng={Number(location.approximate_longitude)}
-              />
+              <ApproxMap lat={Number(location.approximate_latitude)} lng={Number(location.approximate_longitude)} />
             </>
           ) : (
             <p className="text-sm text-gray-400 italic">Point de dépôt non défini par le voyageur.</p>
@@ -213,13 +203,9 @@ function LocationRevealCard({
   )
 }
 
-// ─── Banner component ──────────────────────────────────────────────────────
+// ─── InfoBanner ────────────────────────────────────────────────────────────
 
-function InfoBanner({
-  color,
-  icon: Icon,
-  children,
-}: {
+function InfoBanner({ color, icon: Icon, children }: {
   color:    'amber' | 'blue' | 'red' | 'green'
   icon:     React.ComponentType<{ className?: string }>
   children: React.ReactNode
@@ -238,22 +224,59 @@ function InfoBanner({
   )
 }
 
-// ─── Dispute Modal ─────────────────────────────────────────────────────────
+// ─── KycRequiredDialog — Sileye #6 ─────────────────────────────────────────
 
-function DisputeModal({
-  bookingId,
-  onClose,
-}: {
-  bookingId: number
-  onClose:   () => void
-}) {
+function KycRequiredDialog({ bookingId, onClose }: { bookingId: number; onClose: () => void }) {
+  const navigate = useNavigate()
+
+  const handleGoKyc = () => {
+    sessionStorage.setItem('pendingPaymentBookingId', String(bookingId))
+    navigate('/sender/profile', { state: { kycRequired: true } })
+  }
+
+  return (
+    <div role="dialog" aria-modal aria-labelledby="kyc-dialog-title"
+      className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-md bg-white rounded-[20px] shadow-xl p-6 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5 text-amber-600" aria-hidden />
+            </div>
+            <h2 id="kyc-dialog-title" className="text-base font-semibold text-gray-900">
+              Vérification d'identité requise
+            </h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Fermer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 text-sm text-gray-600">
+          <p>Pour effectuer un paiement sur Safe Move, votre identité doit être vérifiée (KYC).</p>
+          <p>Cette étape est obligatoire pour garantir la sécurité des transactions et protéger tous les utilisateurs.</p>
+          <div className="mt-1 p-3 bg-amber-50 border border-amber-200 rounded-[10px] text-amber-800 text-xs">
+            📋 Vous aurez besoin d'une pièce d'identité valide (CNI, passeport ou titre de séjour).
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={onClose}>Plus tard</Button>
+          <Button variant="primary" className="flex-1" onClick={handleGoKyc}>Vérifier mon identité</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DisputeModal ──────────────────────────────────────────────────────────
+
+function DisputeModal({ bookingId, onClose }: { bookingId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
   const [reason, setReason] = useState('')
   const hasEnough = reason.trim().length >= 10
 
   const mutation = useMutation({
-    mutationFn: () =>
-      client.post(`/bookings/${bookingId}/dispute`, { reason: reason.trim() }),
+    mutationFn: () => client.post(`/bookings/${bookingId}/dispute`, { reason: reason.trim() }),
     onSuccess: () => {
       toast.success('Litige ouvert.')
       queryClient.invalidateQueries({ queryKey: ['booking', bookingId] })
@@ -265,12 +288,8 @@ function DisputeModal({
   })
 
   return (
-    <div
-      role="dialog"
-      aria-modal
-      aria-labelledby="dispute-title"
-      className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4"
-    >
+    <div role="dialog" aria-modal aria-labelledby="dispute-title"
+      className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
       <div className="relative w-full max-w-md bg-white rounded-[20px] shadow-lg p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
@@ -283,29 +302,15 @@ function DisputeModal({
           <label htmlFor="dispute-reason" className="text-sm font-medium text-gray-700">
             Motif du litige <span className="text-red-500" aria-hidden>*</span>
           </label>
-          <textarea
-            id="dispute-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={4}
-            placeholder="Décrivez le problème rencontré (minimum 10 caractères)…"
-            className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]"
-          />
+          <textarea id="dispute-reason" value={reason} onChange={(e) => setReason(e.target.value)}
+            rows={4} placeholder="Décrivez le problème rencontré (minimum 10 caractères)…"
+            className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
           <p className="text-xs text-gray-400">{reason.trim().length} / 10 caractères minimum</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>
-            Annuler
-          </Button>
-          <Button
-            variant="danger"
-            className="flex-1"
-            onClick={() => mutation.mutate()}
-            loading={mutation.isPending}
-            disabled={!hasEnough}
-          >
-            Ouvrir le litige
-          </Button>
+          <Button variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
+          <Button variant="danger" className="flex-1" onClick={() => mutation.mutate()}
+            loading={mutation.isPending} disabled={!hasEnough}>Ouvrir le litige</Button>
         </div>
       </div>
     </div>
@@ -314,7 +319,9 @@ function DisputeModal({
 
 // ─── TravelerBadge ─────────────────────────────────────────────────────────
 
-function TravelerBadge({ user }: { user: { first_name: string; last_name?: string | null; kyc_verified?: boolean; trips_count?: number; member_since?: string } }) {
+function TravelerBadge({ user }: {
+  user: { first_name: string; last_name?: string | null; kyc_verified?: boolean; trips_count?: number; member_since?: string }
+}) {
   return (
     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-[12px] border border-gray-100">
       <div className="w-9 h-9 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-sm font-bold shrink-0">
@@ -351,20 +358,20 @@ export default function BookingDetailPage() {
   const bookingId   = Number(id)
   const queryClient = useQueryClient()
   const navigate    = useNavigate()
-  const userRole      = useAuthStore((s) => s.user?.role)
+  const userRole       = useAuthStore((s) => s.user?.role)
   const isTravelerUser = userRole !== undefined && isTraveler(userRole)
-  const userCountry   = useAuthStore((s) => s.user?.country) ?? 'SN'
+  const userCountry    = useAuthStore((s) => s.user?.country) ?? 'SN'
   const paymentSectionRef = useRef<HTMLDivElement>(null)
 
   const [phone,         setPhone]         = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
   const [showCancel,    setShowCancel]    = useState(false)
   const [showDispute,   setShowDispute]   = useState(false)
+  const [showKyc,       setShowKyc]       = useState(false)  // Sileye #6
 
   const { data: booking, isLoading, isError, refetch } = useBooking(bookingId)
   const { data: allTransactions, isError: isTxError, error: txError } = useTransactions()
 
-  // Pay
   const payMutation = useMutation({
     mutationFn: async () => {
       const toastId = toast.loading('Préparation du paiement...')
@@ -388,15 +395,13 @@ export default function BookingDetailPage() {
     },
     onError: (err: AxiosError<{ message?: string; kyc_required?: boolean }>) => {
       if (err.response?.data?.kyc_required) {
-        sessionStorage.setItem('pendingPaymentBookingId', String(bookingId))
-        navigate('/sender/profile', { state: { kycRequired: true } })
+        setShowKyc(true)  // Sileye #6 — dialog au lieu de redirect silencieux
         return
       }
       toast.error(err.response?.data?.message ?? 'Une erreur est survenue')
     },
   })
 
-  // Cancel
   const cancelMutation = useMutation({
     mutationFn: () => client.post(`/bookings/${bookingId}/cancel`),
     onSuccess: () => {
@@ -407,7 +412,7 @@ export default function BookingDetailPage() {
       navigate('/sender/bookings')
     },
     onError: (err: AxiosError<{ message?: string }>) => {
-      toast.error(err.response?.data?.message ?? 'Impossible d\'annuler.')
+      toast.error(err.response?.data?.message ?? "Impossible d'annuler.")
       setShowCancel(false)
     },
   })
@@ -422,42 +427,37 @@ export default function BookingDetailPage() {
     )
   }
 
-  const status            = booking.status as BookingStatusCode
-  const transactions      = (allTransactions ?? []).filter((tx) => tx.booking_id === bookingId)
-  const is403             = isTxError && (txError as AxiosError)?.response?.status === 403
-  const kgDisplay         = (booking.kg_reserved / 1000).toFixed(1) + ' kg'
-  const tripDate          = booking.trip?.date ? booking.trip.date.split('-').reverse().join('/') : null
-  const totalAmount       = booking.items.reduce((sum, item) => sum + item.price, 0)
-  const chargeCompleted   = transactions.find((tx) => tx.type?.code === 'CHARGE' && tx.status?.code === 'COMPLETED')
-  const refundCompleted   = transactions.find((tx) => tx.type?.code === 'REFUND'  && tx.status?.code === 'COMPLETED')
-  const amountPaid        = chargeCompleted?.amount ?? 0
-  const amountRefunded    = refundCompleted?.amount  ?? 0
+  const status          = booking.status as BookingStatusCode
+  const transactions    = (allTransactions ?? []).filter((tx) => tx.booking_id === bookingId)
+  const is403           = isTxError && (txError as AxiosError)?.response?.status === 403
+  const kgDisplay       = (booking.kg_reserved / 1000).toFixed(1) + ' kg'
+  const tripDate        = booking.trip?.date ? booking.trip.date.split('-').reverse().join('/') : null
+  const totalAmount     = booking.items.reduce((sum, item) => sum + item.price, 0)
+  const chargeCompleted = transactions.find((tx) => tx.type?.code === 'CHARGE' && tx.status?.code === 'COMPLETED')
+  const refundCompleted = transactions.find((tx) => tx.type?.code === 'REFUND'  && tx.status?.code === 'COMPLETED')
+  const amountPaid      = chargeCompleted?.amount ?? 0
+  const amountRefunded  = refundCompleted?.amount  ?? 0
 
-  const isPendingApproval = status === 'pending_approval'
-  const isPendingPayment  = status === 'en_paiement'
-  const isConfirmed       = ['confirmee', 'livree', 'termine'].includes(status)
-  const isExpired         = status === 'expiree'
-  const isDeclined        = status === 'declined_by_traveler'
-  const isCancellable     = isPendingApproval || isPendingPayment
-  const canOpenDispute    = status === 'confirmee' || status === 'livree'
-  const isPhoneRequired   = paymentMethod === 'mobile_money'
-  const isPayDisabled     = payMutation.isPending || (isPhoneRequired && !phone.trim())
+  // Instant Booking — plus de pending_approval ni declined_by_traveler
+  const isPendingPayment = status === 'en_paiement'
+  const isConfirmed      = ['confirmee', 'livree', 'termine'].includes(status)
+  const isExpired        = status === 'expiree'
+  const isCancellable    = isPendingPayment
+  const canOpenDispute   = status === 'confirmee' || status === 'livree'
+  const isPhoneRequired  = paymentMethod === 'mobile_money'
+  const isPayDisabled    = payMutation.isPending || (isPhoneRequired && !phone.trim())
 
   const traveler = booking.trip?.user
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
 
-      {/* Back */}
-      <Link
-        to="/sender/bookings"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A6B] mb-6 transition-colors"
-      >
+      <Link to="/sender/bookings"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B3A6B] mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" aria-hidden />
         Mes réservations
       </Link>
 
-      {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Réservation #{booking.id}</h1>
@@ -467,30 +467,18 @@ export default function BookingDetailPage() {
       </div>
 
       {/* ── Banners ────────────────────────────────────────────────────── */}
-
-      {isPendingApproval && (
-        <InfoBanner color="amber" icon={Clock}>
-          <p className="font-semibold">En attente d'approbation du voyageur</p>
-          <p className="mt-0.5 text-xs opacity-80">
-            Vous recevrez une notification par email dès que le voyageur aura répondu.
-            Le bouton de paiement sera disponible après approbation.
-          </p>
-        </InfoBanner>
-      )}
-
       {isExpired && (
         <InfoBanner color="amber" icon={AlertCircle}>
           Le délai de paiement a expiré. Vous pouvez créer une nouvelle réservation.
         </InfoBanner>
       )}
 
-      {isDeclined && (
+      {/* Ancien statut legacy — affiché si le booking date d'avant la migration */}
+      {status === 'declined_by_traveler' && (
         <InfoBanner color="red" icon={AlertCircle}>
           <p className="font-semibold">Réservation refusée par le voyageur</p>
-          <button
-            onClick={() => navigate('/trips')}
-            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-          >
+          <button onClick={() => navigate('/trips')}
+            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold hover:underline">
             <Search className="w-3 h-3" aria-hidden />
             Rechercher un autre trajet
           </button>
@@ -523,20 +511,15 @@ export default function BookingDetailPage() {
             </div>
           )}
         </dl>
-
-        {/* Badge voyageur */}
         {traveler && (
           <div className="mt-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Voyageur</p>
             <TravelerBadge user={traveler} />
           </div>
         )}
-
         <div className="mt-4">
-          <Link
-            to={`/trips/${booking.trip_id}`}
-            className="inline-flex items-center gap-1 text-xs text-[#1B3A6B] hover:underline"
-          >
+          <Link to={`/trips/${booking.trip_id}`}
+            className="inline-flex items-center gap-1 text-xs text-[#1B3A6B] hover:underline">
             Voir le détail du trajet <ExternalLink className="w-3 h-3" aria-hidden />
           </Link>
         </div>
@@ -554,13 +537,10 @@ export default function BookingDetailPage() {
                     <span className="font-mono text-xs text-gray-400 truncate block">
                       {item.luggage?.tracking_id ?? `Item #${item.id}`}
                     </span>
-                    <span className="text-gray-600 text-xs">
-                      {(item.kg_reserved / 1000).toFixed(1)} kg
-                    </span>
+                    <span className="text-gray-600 text-xs">{(item.kg_reserved / 1000).toFixed(1)} kg</span>
                   </div>
                   <span className="font-medium text-gray-900 font-mono shrink-0 ml-4">{formatAmount(item.price, 'EUR')}</span>
                 </div>
-
                 {item.luggage?.content_items && item.luggage.content_items.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {item.luggage.content_items.map((ci, idx) => (
@@ -584,49 +564,30 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {/* ── Photo colis (EN_PAIEMENT uniquement) ───────────────────────── */}
+      {/* ── Photo colis ────────────────────────────────────────────────── */}
       {isPendingPayment && booking.items.some((item) => item.luggage) && (
         <Card className="mb-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            📸 Photo du colis
-          </h2>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">📸 Photo du colis</h2>
           <p className="text-xs text-gray-400 mb-4">
             Ajoutez une photo de votre colis avant le paiement. Cela facilite la remise au voyageur.
           </p>
           <div className="flex flex-col gap-4">
             {booking.items.map((item) => item.luggage && (
-              <LuggagePhotoUpload
-                key={item.id}
-                luggageId={item.luggage_id}
-                trackingId={item.luggage.tracking_id}
-                existingPhotoPath={item.luggage.photo_path}
-              />
+              <LuggagePhotoUpload key={item.id} luggageId={item.luggage_id}
+                trackingId={item.luggage.tracking_id} existingPhotoPath={item.luggage.photo_path} />
             ))}
           </div>
         </Card>
       )}
 
-      {/* ── Pickup / Delivery Location ─────────────────────────────────── */}
-      <LocationRevealCard
-        label="📦 Point de dépôt colis"
-        icon={MapPin}
-        location={booking.trip?.pickup_location}
-        isConfirmed={isConfirmed}
-      />
-      <LocationRevealCard
-        label="🎯 Point de remise colis"
-        icon={Home}
-        location={booking.trip?.delivery_location}
-        isConfirmed={isConfirmed}
-      />
+      {/* ── Locations ──────────────────────────────────────────────────── */}
+      <LocationRevealCard label="📦 Point de dépôt colis" icon={MapPin}
+        location={booking.trip?.pickup_location} isConfirmed={isConfirmed} />
+      <LocationRevealCard label="🎯 Point de remise colis" icon={Home}
+        location={booking.trip?.delivery_location} isConfirmed={isConfirmed} />
 
-      {/* ── Pickup Location legacy (traveler uniquement) ────────────────── */}
       {isTravelerUser && (
-        <PickupLocationCard
-          bookingId={bookingId}
-          isTraveler={isTravelerUser}
-          bookingStatus={status}
-        />
+        <PickupLocationCard bookingId={bookingId} isTraveler={isTravelerUser} bookingStatus={status} />
       )}
 
       {/* ── Récap financier ────────────────────────────────────────────── */}
@@ -645,14 +606,12 @@ export default function BookingDetailPage() {
           )}
           <div className="flex justify-between text-sm py-2 border-t border-gray-100 mt-2">
             <span className="font-semibold text-gray-900">Total net</span>
-            <span className="font-bold text-gray-900 font-mono">
-              {formatAmount(amountPaid - amountRefunded, 'EUR')}
-            </span>
+            <span className="font-bold text-gray-900 font-mono">{formatAmount(amountPaid - amountRefunded, 'EUR')}</span>
           </div>
         </Card>
       )}
 
-      {/* ── Paiement (EN_PAIEMENT uniquement) ─────────────────────────── */}
+      {/* ── Paiement ───────────────────────────────────────────────────── */}
       {isPendingPayment && (
         <div ref={paymentSectionRef}>
           <Card className="mb-4 border-amber-200 bg-amber-50">
@@ -661,63 +620,38 @@ export default function BookingDetailPage() {
               <span className="text-sm text-gray-700">Montant total</span>
               <span className="text-lg font-bold text-gray-900 font-mono">{formatAmount(totalAmount, 'EUR')}</span>
             </div>
-
             {booking.payment_expires_at && (
               <div className="mb-4">
-                <CountdownTimer
-                  expiresAt={booking.payment_expires_at}
-                  onExpired={() => {
-                    queryClient.invalidateQueries({ queryKey: ['booking', bookingId] })
-                  }}
-                />
+                <CountdownTimer expiresAt={booking.payment_expires_at}
+                  onExpired={() => queryClient.invalidateQueries({ queryKey: ['booking', bookingId] })} />
               </div>
             )}
-
             <div className="grid grid-cols-2 gap-2 mb-4">
               {(['mobile_money', 'card'] as const).map((method) => (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
+                <button key={method} onClick={() => setPaymentMethod(method)}
                   aria-pressed={paymentMethod === method}
                   className={`py-2.5 px-3 rounded-[10px] border text-sm font-medium transition-all min-h-[48px] ${
                     paymentMethod === method
                       ? 'border-[#1B3A6B] bg-[#1B3A6B] text-white'
                       : 'border-gray-300 text-gray-700 hover:border-[#1B3A6B]'
-                  }`}
-                >
+                  }`}>
                   {method === 'mobile_money' ? '📱 Mobile Money' : '💳 Carte bancaire'}
                 </button>
               ))}
             </div>
-
             {paymentMethod === 'mobile_money' && (
-              <input
-                type="tel"
-                placeholder="+221 77 000 00 00"
-                value={phone}
+              <input type="tel" placeholder="+221 77 000 00 00" value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 aria-label="Numéro de téléphone Mobile Money"
-                className="w-full border border-gray-300 rounded-[10px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] min-h-[48px]"
-              />
+                className="w-full border border-gray-300 rounded-[10px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] min-h-[48px]" />
             )}
-
-            <Button
-              variant="primary"
-              className="w-full"
-              loading={payMutation.isPending}
-              disabled={isPayDisabled}
-              onClick={() => payMutation.mutate()}
-            >
+            <Button variant="primary" className="w-full" loading={payMutation.isPending}
+              disabled={isPayDisabled} onClick={() => payMutation.mutate()}>
               Payer maintenant
             </Button>
-
             <div className="mt-3 text-center">
-              <img
-                src="/paydunya-badge.png"
-                alt="Moyens de paiement acceptés"
-                className="mx-auto max-w-full h-10 object-contain opacity-80"
-                loading="lazy"
-              />
+              <img src="/paydunya-badge.png" alt="Moyens de paiement acceptés"
+                className="mx-auto max-w-full h-10 object-contain opacity-80" loading="lazy" />
               <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-2">
                 <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
                 Paiement sécurisé via Safe Move
@@ -725,19 +659,6 @@ export default function BookingDetailPage() {
             </div>
           </Card>
         </div>
-      )}
-
-      {/* ── PENDING_APPROVAL — bouton payer désactivé visible ─────────── */}
-      {isPendingApproval && (
-        <Card className="mb-4 border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-600">Montant estimé</span>
-            <span className="font-bold text-gray-400 font-mono">{formatAmount(totalAmount, 'EUR')}</span>
-          </div>
-          <Button variant="primary" className="w-full" disabled>
-            Payer maintenant (disponible après approbation)
-          </Button>
-        </Card>
       )}
 
       {/* ── Transactions ───────────────────────────────────────────────── */}
@@ -760,16 +681,14 @@ export default function BookingDetailPage() {
                   <p className="font-medium text-gray-900">{tx.type.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{tx.status.label}</p>
                 </div>
-                <span className="font-medium text-gray-900 font-mono">
-                  {formatAmount(tx.amount, tx.currency.code)}
-                </span>
+                <span className="font-medium text-gray-900 font-mono">{formatAmount(tx.amount, tx.currency.code)}</span>
               </div>
             ))}
           </div>
         )}
       </Card>
 
-      {/* ── Historique statuts ─────────────────────────────────────────── */}
+      {/* ── Historique ─────────────────────────────────────────────────── */}
       {booking.status_history.length > 0 && (
         <Card className="mb-6">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Historique</h2>
@@ -779,9 +698,7 @@ export default function BookingDetailPage() {
                 <span className="mt-1.5 w-2 h-2 rounded-full bg-[#1B3A6B] flex-shrink-0" aria-hidden />
                 <div>
                   <p className="text-gray-900">
-                    {entry.old_label && (
-                      <span className="text-gray-500">{entry.old_label} → </span>
-                    )}
+                    {entry.old_label && <span className="text-gray-500">{entry.old_label} → </span>}
                     <span className="font-medium">{entry.new_label}</span>
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{formatDate(entry.changed_at)}</p>
@@ -796,18 +713,14 @@ export default function BookingDetailPage() {
       {/* ── Actions ────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3 justify-end">
         {isCancellable && (
-          <Button variant="secondary" onClick={() => setShowCancel(true)}>
-            Annuler la réservation
-          </Button>
+          <Button variant="secondary" onClick={() => setShowCancel(true)}>Annuler la réservation</Button>
         )}
         {canOpenDispute && (
-          <Button variant="danger" onClick={() => setShowDispute(true)}>
-            Ouvrir un litige
-          </Button>
+          <Button variant="danger" onClick={() => setShowDispute(true)}>Ouvrir un litige</Button>
         )}
       </div>
 
-      {/* ── Lien thread litige si en_litige ────────────────────────────── */}
+      {/* ── Lien dispute ───────────────────────────────────────────────── */}
       {status === 'en_litige' && !isTravelerUser && booking.dispute_id && (
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-[14px] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -817,10 +730,8 @@ export default function BookingDetailPage() {
               <p className="text-xs text-amber-700 mt-0.5">Communiquez avec le voyageur et l'équipe Safe Move.</p>
             </div>
           </div>
-          <Link
-            to={`/sender/disputes/${booking.dispute_id}`}
-            className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-800 hover:underline"
-          >
+          <Link to={`/sender/disputes/${booking.dispute_id}`}
+            className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-800 hover:underline">
             Voir le fil de discussion →
           </Link>
         </div>
@@ -831,17 +742,16 @@ export default function BookingDetailPage() {
         open={showCancel}
         title="Annuler la réservation ?"
         description="Cette action est irréversible. La réservation sera annulée et vous devrez en créer une nouvelle."
-        confirmLabel="Oui, annuler"
-        cancelLabel="Garder"
-        variant="danger"
+        confirmLabel="Oui, annuler" cancelLabel="Garder" variant="danger"
         loading={cancelMutation.isPending}
         onConfirm={() => cancelMutation.mutate()}
         onCancel={() => setShowCancel(false)}
       />
 
-      {showDispute && (
-        <DisputeModal bookingId={bookingId} onClose={() => setShowDispute(false)} />
-      )}
+      {showDispute && <DisputeModal bookingId={bookingId} onClose={() => setShowDispute(false)} />}
+
+      {/*  #6 — Dialog KYC requis */}
+      {showKyc && <KycRequiredDialog bookingId={bookingId} onClose={() => setShowKyc(false)} />}
     </div>
   )
 }
