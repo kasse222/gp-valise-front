@@ -8,6 +8,10 @@ export interface CreateBookingPayload {
     kg_reserved: number;
   }>;
   comment?: string;
+  // Instant Booking — destinataire obligatoire
+  recipient_name:  string;
+  recipient_phone: string;
+  recipient_email: string;
 }
 
 export async function getBookings(): Promise<Booking[]> {
@@ -22,15 +26,15 @@ export async function getBooking(id: number): Promise<Booking> {
 
 export interface PayBookingResponse {
   transaction_id: number;
-  booking_id: number;
-  amount: number;
-  status: string;
-  payment_url: string | null;
+  booking_id:     number;
+  amount:         number;
+  status:         string;
+  payment_url:    string | null;
 }
 
 export interface PayBookingPayload {
-  method?: string;
-  phone?: string;
+  method?:  string;
+  phone?:   string;
   country?: string;
 }
 
@@ -51,14 +55,17 @@ export async function payBooking(
   );
   return data;
 }
+
 export async function cancelBooking(bookingId: number): Promise<void> {
   await client.post(`/bookings/${bookingId}/cancel`)
 }
 
+// @deprecated Instant Booking
 export async function approveBooking(bookingId: number): Promise<void> {
   await client.post(`/bookings/${bookingId}/approve`)
 }
 
+// @deprecated Instant Booking
 export async function declineBooking(bookingId: number): Promise<void> {
   await client.post(`/bookings/${bookingId}/decline`)
 }
