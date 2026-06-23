@@ -428,6 +428,12 @@ export default function BookingDetailPage() {
   const amountPaid      = chargeCompleted?.amount ?? 0
   const amountRefunded  = refundCompleted?.amount  ?? 0
 
+  // F-030 — devise depuis la transaction confirmée.
+  // Priorité : charge.currency.code (réelle) → pays user → XOF (corridor Africa par défaut)
+  const bookingCurrency: string =
+    chargeCompleted?.currency?.code ??
+    (userCountry === 'MA' ? 'MAD' : userCountry === 'FR' || userCountry === 'BE' ? 'EUR' : 'XOF')
+
   const isPendingPayment = status === 'en_paiement'
   const isConfirmed      = ['confirmee', 'livree', 'termine'].includes(status)
   const isExpired        = status === 'expiree'
@@ -526,7 +532,10 @@ export default function BookingDetailPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">⚖️ {(item.kg_reserved / 1000).toFixed(1)} kg</p>
                     </div>
-                    <span className="font-medium text-gray-900 font-mono shrink-0 ml-4">{formatAmount(item.price, 'EUR')}</span>
+                    {/* F-030 — devise réelle, pas EUR hardcodé */}
+                    <span className="font-medium text-gray-900 font-mono shrink-0 ml-4">
+                      {formatAmount(item.price, bookingCurrency)}
+                    </span>
                   </div>
                   {item.luggage?.content_items && item.luggage.content_items.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -537,7 +546,6 @@ export default function BookingDetailPage() {
                       ))}
                     </div>
                   )}
-                  {/* Lien suivi colis */}
                   {item.luggage?.tracking_id && (
                     <Link to={`/track/${item.luggage.tracking_id}`}
                       className="inline-flex items-center gap-2 self-start px-3 py-1.5 bg-[#EBF4FF] hover:bg-[#1B3A6B] hover:text-white text-[#1B3A6B] text-xs font-semibold rounded-[8px] transition-colors">
@@ -576,23 +584,26 @@ export default function BookingDetailPage() {
         <PickupLocationCard bookingId={bookingId} isTraveler={isTravelerUser} bookingStatus={status} />
       )}
 
-      {/* Récap financier */}
+      {/* Récapitulatif financier */}
       {isConfirmed && amountPaid > 0 && (
         <Card className="mb-4">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Récapitulatif financier</h2>
           <div className="flex justify-between text-sm py-1">
             <span className="text-gray-600">Montant payé</span>
-            <span className="font-medium text-gray-900 font-mono">{formatAmount(amountPaid, 'EUR')}</span>
+            {/* F-030 — devise réelle */}
+            <span className="font-medium text-gray-900 font-mono">{formatAmount(amountPaid, bookingCurrency)}</span>
           </div>
           {amountRefunded > 0 && (
             <div className="flex justify-between text-sm py-1">
               <span className="text-gray-600">Remboursé</span>
-              <span className="font-medium text-red-600 font-mono">-{formatAmount(amountRefunded, 'EUR')}</span>
+              <span className="font-medium text-red-600 font-mono">-{formatAmount(amountRefunded, bookingCurrency)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm py-2 border-t border-gray-100 mt-2">
             <span className="font-semibold text-gray-900">Total net</span>
-            <span className="font-bold text-gray-900 font-mono">{formatAmount(amountPaid - amountRefunded, 'EUR')}</span>
+            <span className="font-bold text-gray-900 font-mono">
+              {formatAmount(amountPaid - amountRefunded, bookingCurrency)}
+            </span>
           </div>
         </Card>
       )}
@@ -604,7 +615,10 @@ export default function BookingDetailPage() {
             <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">Paiement</h2>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-gray-700">Montant total</span>
-              <span className="text-lg font-bold text-gray-900 font-mono">{formatAmount(totalAmount, 'EUR')}</span>
+              {/* F-030 — devise réelle (avant charge, on utilise le fallback pays) */}
+              <span className="text-lg font-bold text-gray-900 font-mono">
+                {formatAmount(totalAmount, bookingCurrency)}
+              </span>
             </div>
             {booking.payment_expires_at && (
               <div className="mb-4">
@@ -664,6 +678,7 @@ export default function BookingDetailPage() {
                   <p className="font-medium text-gray-900">{tx.type.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{tx.status.label}</p>
                 </div>
+                {/* Déjà correct — utilise tx.currency.code */}
                 <span className="font-medium text-gray-900 font-mono">{formatAmount(tx.amount, tx.currency.code)}</span>
               </div>
             ))}
