@@ -4,11 +4,20 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs)
 }
 
-export function formatAmount(amount: number, currency: string = 'EUR'): string {
+export function formatAmount(amount: number, currency: string = 'XOF'): string {
+  // XOF (Franc CFA) n'a pas de sous-unité — pas de division par 100
+  // EUR, MAD, GBP, USD : montant stocké en centimes → diviser par 100
+  const CURRENCIES_WITHOUT_SUBUNIT = ['XOF', 'JPY', 'KRW']
+  const hasSubunit = !CURRENCIES_WITHOUT_SUBUNIT.includes(currency.toUpperCase())
+
+  const value = hasSubunit ? amount / 100 : amount
+
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency,
-  }).format(amount / 100)
+    minimumFractionDigits: hasSubunit ? 2 : 0,
+    maximumFractionDigits: hasSubunit ? 2 : 0,
+  }).format(value)
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
