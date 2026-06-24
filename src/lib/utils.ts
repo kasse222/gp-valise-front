@@ -170,3 +170,16 @@ export const currencySymbol: Record<string, string> = {
   GBP: '£',
   MAD: 'DH',
 }
+
+const COUNTRY_CURRENCY_MAP: Record<string, string> = {
+  SN: 'XOF', CI: 'XOF', BJ: 'XOF', TG: 'XOF', ML: 'XOF', BF: 'XOF', GW: 'XOF', NE: 'XOF',
+  FR: 'EUR', BE: 'EUR', DE: 'EUR', ES: 'EUR', IT: 'EUR', PT: 'EUR',
+  MA: 'MAD',
+  GB: 'GBP',
+  US: 'USD', CA: 'USD',
+}
+ 
+export function currencyForCountry(countryCode: string): string {
+  return COUNTRY_CURRENCY_MAP[countryCode?.toUpperCase()] ?? 'XOF'
+}
+ 

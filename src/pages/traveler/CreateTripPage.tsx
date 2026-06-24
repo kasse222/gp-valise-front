@@ -10,6 +10,7 @@ import { CitySelect } from '@/components/ui/CitySelect'
 import { CountrySelect } from '@/components/ui/CountrySelect'
 import { MapPickerField } from '@/components/ui/MapPickerField'
 import { createTrip } from '@/api/trips'
+import { currencyForCountry, currencySymbol } from '@/lib/utils'
 
 interface Coords { lat: number; lng: number }
 
@@ -31,8 +32,8 @@ function StepBar({ current }: { current: number }) {
   return (
     <div className="flex items-center gap-0 mb-8">
       {STEPS.map((step, i) => {
-        const done    = current > step.n
-        const active  = current === step.n
+        const done   = current > step.n
+        const active = current === step.n
         return (
           <div key={step.n} className="flex items-center flex-1 last:flex-none">
             <div className="flex flex-col items-center gap-1.5">
@@ -60,9 +61,10 @@ function StepBar({ current }: { current: number }) {
 // ─── Hero résumé ───────────────────────────────────────────────────────────
 
 function TripSummaryHero({
-  departure, destination, date, availableKg, pricePerKg,
+  departure, destination, date, availableKg, pricePerKg, symbol,
 }: {
-  departure: string; destination: string; date: string; availableKg: string; pricePerKg: string
+  departure: string; destination: string; date: string
+  availableKg: string; pricePerKg: string; symbol: string
 }) {
   const hasRoute = departure && destination
   return (
@@ -79,11 +81,12 @@ function TripSummaryHero({
       )}
       <div className="flex flex-wrap gap-3 text-sm text-white/80">
         {date && <span>📅 {new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
-        {availableKg && availableKg !== '10' || true ? <span>⚖️ {availableKg} kg</span> : null}
-        {pricePerKg && <span>💶 {pricePerKg} €/kg</span>}
+        {availableKg && <span>⚖️ {availableKg} kg</span>}
+        {/* Devise native du pays de départ */}
+        {pricePerKg && <span>💰 {pricePerKg} {symbol}/kg</span>}
         {availableKg && pricePerKg && (
           <span className="ml-auto font-bold text-white">
-            ≈ {(Number(availableKg) * Number(pricePerKg)).toFixed(0)} € max
+            ≈ {(Number(availableKg) * Number(pricePerKg)).toFixed(0)} {symbol} max
           </span>
         )}
       </div>
@@ -110,16 +113,20 @@ export default function CreateTripPage() {
   const [pricePerKg,  setPricePerKg]  = useState('8')
   const [typeTrip,    setTypeTrip]    = useState('standard')
 
+  // Devise dérivée du pays de départ — miroir de CurrencyEnum::forCountry() backend
+  const tripCurrency = currencyForCountry(departureCountry)
+  const tripSymbol   = currencySymbol[tripCurrency] ?? tripCurrency
+
   // Étape 3 — Points RDV
-  const [pickupAddress,      setPickupAddress]      = useState('')
-  const [pickupCity,         setPickupCity]         = useState('')
-  const [pickupExact,        setPickupExact]        = useState<Coords | null>(null)
-  const [pickupApprox,       setPickupApprox]       = useState<Coords | null>(null)
-  const [pickupInstructions, setPickupInstructions] = useState('')
-  const [deliveryAddress,    setDeliveryAddress]    = useState('')
-  const [deliveryCity,       setDeliveryCity]       = useState('')
-  const [deliveryExact,      setDeliveryExact]      = useState<Coords | null>(null)
-  const [deliveryApprox,     setDeliveryApprox]     = useState<Coords | null>(null)
+  const [pickupAddress,        setPickupAddress]        = useState('')
+  const [pickupCity,           setPickupCity]           = useState('')
+  const [pickupExact,          setPickupExact]          = useState<Coords | null>(null)
+  const [pickupApprox,         setPickupApprox]         = useState<Coords | null>(null)
+  const [pickupInstructions,   setPickupInstructions]   = useState('')
+  const [deliveryAddress,      setDeliveryAddress]      = useState('')
+  const [deliveryCity,         setDeliveryCity]         = useState('')
+  const [deliveryExact,        setDeliveryExact]        = useState<Coords | null>(null)
+  const [deliveryApprox,       setDeliveryApprox]       = useState<Coords | null>(null)
   const [deliveryInstructions, setDeliveryInstructions] = useState('')
 
   useEffect(() => { if (departure)   setPickupCity(departure)   }, [departure])
@@ -149,7 +156,6 @@ export default function CreateTripPage() {
     !!departure && !!destination &&
     departure.trim().toLowerCase() === destination.trim().toLowerCase()
 
-  // Validation par étape
   const step1Valid = !!departure && !!destination && !!date && !sameRoute
   const step2Valid = !!availableKg && !!pricePerKg
 
@@ -162,7 +168,10 @@ export default function CreateTripPage() {
     },
     onError: (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
       if (error.response?.data?.errors?.kyc) {
-        sessionStorage.setItem('pendingTrip', JSON.stringify({ departure, destination, date, availableKg, pricePerKg, typeTrip, pickupInstructions, deliveryInstructions }))
+        sessionStorage.setItem('pendingTrip', JSON.stringify({
+          departure, destination, date, availableKg, pricePerKg, typeTrip,
+          pickupInstructions, deliveryInstructions,
+        }))
         navigate('/traveler/profile', { state: { kycRequired: true } })
         return
       }
@@ -200,10 +209,11 @@ export default function CreateTripPage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
 
-      {/* Hero résumé */}
+      {/* Hero résumé — passe le symbole de devise */}
       <TripSummaryHero
         departure={departure} destination={destination}
         date={date} availableKg={availableKg} pricePerKg={pricePerKg}
+        symbol={tripSymbol}
       />
 
       {/* Barre de progression */}
@@ -214,27 +224,23 @@ export default function CreateTripPage() {
         <Card>
           <h2 className="text-sm font-semibold text-gray-700 mb-5">🗺️ Itinéraire</h2>
           <div className="flex flex-col gap-5">
-
             <div className="grid grid-cols-2 gap-3">
               <CountrySelect label="Pays de départ" value={departureCountry}
                 onChange={(code) => { setDepartureCountry(code); setDeparture('') }} required />
               <CitySelect label="Ville de départ" value={departure} onChange={setDeparture}
                 placeholder="ex : Dakar" countryCode={departureCountry} required />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <CountrySelect label="Pays de destination" value={destCountry}
                 onChange={(code) => { setDestCountry(code); setDestination('') }} required />
               <CitySelect label="Ville de destination" value={destination} onChange={setDestination}
                 placeholder="ex : Paris" countryCode={destCountry} required />
             </div>
-
             {sameRoute && (
               <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
                 ⚠️ Le départ et la destination ne peuvent pas être identiques.
               </div>
             )}
-
             <Input label="Date et heure de départ" type="datetime-local" required
               value={date} min={nowLocal()} onChange={(e) => setDate(e.target.value)} />
           </div>
@@ -261,7 +267,10 @@ export default function CreateTripPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">Prix par kg (€/kg) *</label>
+              {/* Label dynamique selon la devise du pays de départ */}
+              <label className="text-sm font-medium text-gray-700">
+                Prix par kg ({tripSymbol}/kg) *
+              </label>
               <div className="flex items-center gap-3">
                 <input type="range" min={1} max={100} step={0.5} value={pricePerKg}
                   onChange={(e) => setPricePerKg(e.target.value)}
@@ -270,14 +279,17 @@ export default function CreateTripPage() {
                   onChange={(e) => setPricePerKg(e.target.value)}
                   className="w-20 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none" />
               </div>
-              <div className="flex justify-between text-xs text-gray-400"><span>1 €</span><span>100 €</span></div>
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>1 {tripSymbol}</span>
+                <span>100 {tripSymbol}</span>
+              </div>
             </div>
 
-            {/* Récap prix */}
+            {/* Récap prix — devise native */}
             <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[12px] px-4 py-3">
               <span className="text-sm text-[#1B3A6B]">Gain maximum estimé</span>
               <span className="text-lg font-bold text-[#1B3A6B] font-mono">
-                {(Number(availableKg) * Number(pricePerKg)).toFixed(2)} €
+                {(Number(availableKg) * Number(pricePerKg)).toFixed(0)} {tripSymbol}
               </span>
             </div>
 
