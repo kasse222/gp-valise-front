@@ -26,6 +26,29 @@ const STEPS = [
   { n: 3, label: 'Points RDV' },
 ]
 
+// ─── Config prix par devise ────────────────────────────────────────────────
+// Ranges réalistes selon le corridor + flag subunit pour conversion backend
+
+interface CurrencyPriceConfig {
+  min:        number   // prix min/kg
+  max:        number   // prix max/kg
+  step:       number   // pas du slider
+  default:    number   // valeur par défaut
+  hasSubunit: boolean  // true = centimes (EUR/MAD/GBP) | false = unité entière (XOF)
+}
+
+const PRICE_CONFIG: Record<string, CurrencyPriceConfig> = {
+  XOF: { min: 500,  max: 15000, step: 100,  default: 2000, hasSubunit: false },
+  EUR: { min: 1,    max: 100,   step: 0.5,  default: 8,    hasSubunit: true  },
+  MAD: { min: 5,    max: 500,   step: 5,    default: 80,   hasSubunit: true  },
+  GBP: { min: 1,    max: 100,   step: 0.5,  default: 8,    hasSubunit: true  },
+  USD: { min: 1,    max: 100,   step: 0.5,  default: 8,    hasSubunit: true  },
+}
+
+function getPriceConfig(currency: string): CurrencyPriceConfig {
+  return PRICE_CONFIG[currency] ?? PRICE_CONFIG['EUR']
+}
+
 // ─── Barre de progression ──────────────────────────────────────────────────
 
 function StepBar({ current }: { current: number }) {
@@ -82,11 +105,10 @@ function TripSummaryHero({
       <div className="flex flex-wrap gap-3 text-sm text-white/80">
         {date && <span>📅 {new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
         {availableKg && <span>⚖️ {availableKg} kg</span>}
-        {/* Devise native du pays de départ */}
-        {pricePerKg && <span>💰 {pricePerKg} {symbol}/kg</span>}
+        {pricePerKg && <span>💰 {Number(pricePerKg).toLocaleString('fr-FR')} {symbol}/kg</span>}
         {availableKg && pricePerKg && (
           <span className="ml-auto font-bold text-white">
-            ≈ {(Number(availableKg) * Number(pricePerKg)).toFixed(0)} {symbol} max
+            ≈ {(Number(availableKg) * Number(pricePerKg)).toLocaleString('fr-FR')} {symbol} max
           </span>
         )}
       </div>
@@ -113,9 +135,15 @@ export default function CreateTripPage() {
   const [pricePerKg,  setPricePerKg]  = useState('8')
   const [typeTrip,    setTypeTrip]    = useState('standard')
 
-  // Devise dérivée du pays de départ — miroir de CurrencyEnum::forCountry() backend
-  const tripCurrency = currencyForCountry(departureCountry)
-  const tripSymbol   = currencySymbol[tripCurrency] ?? tripCurrency
+  // Devise + config prix selon pays de départ
+  const tripCurrency  = currencyForCountry(departureCountry)
+  const tripSymbol    = currencySymbol[tripCurrency] ?? tripCurrency
+  const priceConfig   = getPriceConfig(tripCurrency)
+
+  // Réinitialiser le prix par défaut quand la devise change
+  useEffect(() => {
+    setPricePerKg(String(priceConfig.default))
+  }, [tripCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Étape 3 — Points RDV
   const [pickupAddress,        setPickupAddress]        = useState('')
@@ -180,10 +208,17 @@ export default function CreateTripPage() {
   })
 
   function handleSubmit() {
+    // F-007 — conversion backend :
+    // EUR/MAD/GBP/USD : stocker en centimes (price_per_kg * 100)
+    // XOF : stocker en unités entières (pas de * 100)
+    const pricePerKgForBackend = priceConfig.hasSubunit
+      ? Math.round(Number(pricePerKg) * 100)
+      : Math.round(Number(pricePerKg))
+
     mutation.mutate({
       departure, destination, date,
       capacity:     Math.round(Number(availableKg) * 1000),
-      price_per_kg: Math.round(Number(pricePerKg) * 100),
+      price_per_kg: pricePerKgForBackend,
       type_trip:    typeTrip,
       ...(pickupExact ? {
         pickup_address:          pickupAddress || `${pickupExact.lat.toFixed(5)}, ${pickupExact.lng.toFixed(5)}`,
@@ -209,14 +244,12 @@ export default function CreateTripPage() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
 
-      {/* Hero résumé — passe le symbole de devise */}
       <TripSummaryHero
         departure={departure} destination={destination}
         date={date} availableKg={availableKg} pricePerKg={pricePerKg}
         symbol={tripSymbol}
       />
 
-      {/* Barre de progression */}
       <StepBar current={step} />
 
       {/* ── Étape 1 : Itinéraire ─────────────────────────────────────── */}
@@ -267,29 +300,40 @@ export default function CreateTripPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              {/* Label dynamique selon la devise du pays de départ */}
               <label className="text-sm font-medium text-gray-700">
                 Prix par kg ({tripSymbol}/kg) *
               </label>
               <div className="flex items-center gap-3">
-                <input type="range" min={1} max={100} step={0.5} value={pricePerKg}
+                <input
+                  type="range"
+                  min={priceConfig.min}
+                  max={priceConfig.max}
+                  step={priceConfig.step}
+                  value={pricePerKg}
                   onChange={(e) => setPricePerKg(e.target.value)}
-                  className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
-                <input type="number" min={1} max={100} step={0.5} value={pricePerKg}
+                  className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
+                />
+                <input
+                  type="number"
+                  min={priceConfig.min}
+                  max={priceConfig.max}
+                  step={priceConfig.step}
+                  value={pricePerKg}
                   onChange={(e) => setPricePerKg(e.target.value)}
-                  className="w-20 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none" />
+                  className="w-24 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none"
+                />
               </div>
               <div className="flex justify-between text-xs text-gray-400">
-                <span>1 {tripSymbol}</span>
-                <span>100 {tripSymbol}</span>
+                <span>{priceConfig.min.toLocaleString('fr-FR')} {tripSymbol}</span>
+                <span>{priceConfig.max.toLocaleString('fr-FR')} {tripSymbol}</span>
               </div>
             </div>
 
-            {/* Récap prix — devise native */}
+            {/* Récap prix */}
             <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[12px] px-4 py-3">
               <span className="text-sm text-[#1B3A6B]">Gain maximum estimé</span>
               <span className="text-lg font-bold text-[#1B3A6B] font-mono">
-                {(Number(availableKg) * Number(pricePerKg)).toFixed(0)} {tripSymbol}
+                {(Number(availableKg) * Number(pricePerKg)).toLocaleString('fr-FR')} {tripSymbol}
               </span>
             </div>
 
