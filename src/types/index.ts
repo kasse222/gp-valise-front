@@ -270,3 +270,14 @@ export interface PaymentResource {
 }
 
 export type Payment = PaymentResource;
+
+
+// ── Earnings (GP) ─────────────────────────────────────────────────────────────
+
+export interface EarningsBucket {
+  currency:       string;
+  currency_label: string;
+  escrow:         number;
+  pending:        number;
+  paid:           number;
+}
