@@ -219,6 +219,7 @@ export default function CreateTripPage() {
       departure, destination, date,
       capacity:     Math.round(Number(availableKg) * 1000),
       price_per_kg: pricePerKgForBackend,
+      currency:     tripCurrency,
       type_trip:    typeTrip,
       ...(pickupExact ? {
         pickup_address:          pickupAddress || `${pickupExact.lat.toFixed(5)}, ${pickupExact.lng.toFixed(5)}`,
