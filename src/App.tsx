@@ -14,6 +14,7 @@ import SenderDashboard from '@/pages/sender/DashboardPage'
 import TravelerDashboard from '@/pages/traveler/DashboardPage'
 import PaymentSuccessPage from '@/pages/payment/PaymentSuccessPage'
 import PaymentCancelPage from '@/pages/payment/PaymentCancelPage'
+import GpPublicProfilePage from '@/pages/public/GpPublicProfilePage'
 
 import { useAuthStore, isSender } from '@/store/authStore'
 
@@ -96,6 +97,9 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/trips" element={<TripsPublicPage />} />
               <Route path="/trips/:id" element={<TripDetailPublicPage />} />
+
+              {/* Profil public GP — lien partageable WhatsApp */}
+              <Route path="/gp/:id" element={<GpPublicProfilePage />} />
 
               {/* Auth */}
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

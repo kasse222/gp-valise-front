@@ -281,3 +281,14 @@ export interface EarningsBucket {
   pending:        number;
   paid:           number;
 }
+
+export interface TravelerProfile {
+  id:                 number
+  first_name:         string
+  country:            string | null
+  member_since:       string
+  kyc_verified:       boolean
+  active_trips_count: number
+  total_trips_count:  number
+  active_trips:       TripResource[]
+}
