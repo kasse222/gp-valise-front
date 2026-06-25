@@ -8,6 +8,7 @@ import { useBookings } from '@/hooks/useBookings'
 import { cn, tripStatusColor } from '@/lib/utils'
 import { PageHero } from '@/components/ui/PageHero'
 import { EarningsBlock } from '@/components/traveler/EarningsBlock'
+import { ShareProfileBlock } from '@/components/traveler/ShareProfileBlock'
 
 function StatCard({ label, value, variant }: {
   label:   string; value: string; variant: 'primary' | 'success' | 'info'
@@ -95,8 +96,11 @@ export default function TravelerOverviewPage() {
       )}
 
       <EarningsBlock />
+     
+     <ShareProfileBlock />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">        <StatCard label="Trajets actifs"           value={String(actifs)}                    variant="primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">     
+           <StatCard label="Trajets actifs"           value={String(actifs)}                     variant="primary" />
         <StatCard label="Réservations reçues"      value={String(totalBookings)}             variant="success" />
         <StatCard label="Capacité moy. disponible" value={`${capaciteMoyenne.toFixed(0)} %`} variant="info"    />
       </div>
