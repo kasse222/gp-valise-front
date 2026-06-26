@@ -54,9 +54,16 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
   const [recipientPhone, setRecipientPhone] = useState('')
   const [recipientEmail, setRecipientEmail] = useState('')
 
-  const maxKg      = trip.grams_disponible / 1000
-  const tripCurrency = (trip as any).currency ?? 'XOF'
-  const totalCents   = Math.round(kgReserved * trip.price_per_kg)
+  const maxKg       = trip.grams_disponible / 1000
+  const tripCurrency = trip.currency ?? 'XOF'
+  const categoryFees = trip.category_fees ?? []
+
+  // Total = base kg + forfaits cumulatifs par article selon catégorie
+  const feesTotal  = items.reduce((sum, item) => {
+    const fee = categoryFees.find((f) => f.category === item.category)
+    return sum + (fee ? fee.fee : 0)
+  }, 0)
+  const totalCents = Math.round(kgReserved * trip.price_per_kg) + feesTotal
 
   // Sileye #5 — sync slider ↔ input texte
   const handleSliderChange = (val: number) => {
@@ -272,7 +279,14 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 
             {/* Total */}
             <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
-              <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
+              <div>
+                <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
+                {feesTotal > 0 && (
+                  <p className="text-xs text-[#1B3A6B]/70 mt-0.5">
+                    dont {formatAmount(feesTotal, tripCurrency)} de forfaits articles
+                  </p>
+                )}
+              </div>
               <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents, tripCurrency)}</span>
             </div>
 

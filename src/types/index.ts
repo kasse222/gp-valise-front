@@ -75,6 +75,13 @@ export interface TripResource {
   flight_number: string | null;
   capacity: number;
   price_per_kg: number;
+  currency?: string | null;
+  category_fees?: Array<{
+    category:       string
+    category_label: string
+    category_icon:  string
+    fee:            number
+  }>
   type_trip: string | null;
   type_badge: { label: string; color: string } | null;
   status: {
@@ -270,8 +277,6 @@ export interface PaymentResource {
 }
 
 export type Payment = PaymentResource;
-
-
 // ── Earnings (GP) ─────────────────────────────────────────────────────────────
 
 export interface EarningsBucket {
@@ -281,6 +286,8 @@ export interface EarningsBucket {
   pending:        number;
   paid:           number;
 }
+
+// ── Traveler public profile ───────────────────────────────────────────────────
 
 export interface TravelerProfile {
   id:                 number
