@@ -27,14 +27,13 @@ const STEPS = [
 ]
 
 // ─── Config prix par devise ────────────────────────────────────────────────
-// Ranges réalistes selon le corridor + flag subunit pour conversion backend
 
 interface CurrencyPriceConfig {
-  min:        number   // prix min/kg
-  max:        number   // prix max/kg
-  step:       number   // pas du slider
-  default:    number   // valeur par défaut
-  hasSubunit: boolean  // true = centimes (EUR/MAD/GBP) | false = unité entière (XOF)
+  min:        number
+  max:        number
+  step:       number
+  default:    number
+  hasSubunit: boolean
 }
 
 const PRICE_CONFIG: Record<string, CurrencyPriceConfig> = {
@@ -48,6 +47,18 @@ const PRICE_CONFIG: Record<string, CurrencyPriceConfig> = {
 function getPriceConfig(currency: string): CurrencyPriceConfig {
   return PRICE_CONFIG[currency] ?? PRICE_CONFIG['EUR']
 }
+
+// ─── Catégories d'articles ─────────────────────────────────────────────────
+
+const CATEGORIES = [
+  { value: 'phone',     label: 'Téléphone',   icon: '📱' },
+  { value: 'computer',  label: 'Ordinateur',  icon: '💻' },
+  { value: 'cosmetics', label: 'Cosmétiques', icon: '💄' },
+  { value: 'document',  label: 'Document',    icon: '📄' },
+  { value: 'clothes',   label: 'Vêtements',   icon: '👕' },
+  { value: 'medicine',  label: 'Médicaments', icon: '💊' },
+  { value: 'other',     label: 'Autre',       icon: '📦' },
+]
 
 // ─── Barre de progression ──────────────────────────────────────────────────
 
@@ -130,20 +141,26 @@ export default function CreateTripPage() {
   const [destination,      setDestination]      = useState('')
   const [date,             setDate]             = useState('')
 
-  // Étape 2 — Capacité
-  const [availableKg, setAvailableKg] = useState('10')
-  const [pricePerKg,  setPricePerKg]  = useState('8')
-  const [typeTrip,    setTypeTrip]    = useState('standard')
+  // Étape 2 — Capacité & Prix
+  const [availableKg,   setAvailableKg]   = useState('10')
+  const [pricePerKg,    setPricePerKg]    = useState('8')
+  const [typeTrip,      setTypeTrip]      = useState('standard')
+  const [categoryFees,  setCategoryFees]  = useState<Record<string, string>>({})
 
   // Devise + config prix selon pays de départ
-  const tripCurrency  = currencyForCountry(departureCountry)
-  const tripSymbol    = currencySymbol[tripCurrency] ?? tripCurrency
-  const priceConfig   = getPriceConfig(tripCurrency)
+  const tripCurrency = currencyForCountry(departureCountry)
+  const tripSymbol   = currencySymbol[tripCurrency] ?? tripCurrency
+  const priceConfig  = getPriceConfig(tripCurrency)
 
-  // Réinitialiser le prix par défaut quand la devise change
+  // Réinitialiser le prix + les forfaits quand la devise change
   useEffect(() => {
     setPricePerKg(String(priceConfig.default))
+    setCategoryFees({})
   }, [tripCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setCategoryFee = (category: string, value: string) => {
+    setCategoryFees(prev => ({ ...prev, [category]: value }))
+  }
 
   // Étape 3 — Points RDV
   const [pickupAddress,        setPickupAddress]        = useState('')
@@ -209,18 +226,29 @@ export default function CreateTripPage() {
 
   function handleSubmit() {
     // F-007 — conversion backend :
-    // EUR/MAD/GBP/USD : stocker en centimes (price_per_kg * 100)
-    // XOF : stocker en unités entières (pas de * 100)
+    // EUR/MAD/GBP/USD : stocker en centimes (× 100)
+    // XOF : stocker en unités entières (pas de × 100)
     const pricePerKgForBackend = priceConfig.hasSubunit
       ? Math.round(Number(pricePerKg) * 100)
       : Math.round(Number(pricePerKg))
 
+    // Forfaits : même logique de conversion, on exclut les valeurs vides/nulles
+    const categoryFeesForBackend = Object.entries(categoryFees)
+      .filter(([, v]) => v !== '' && Number(v) > 0)
+      .map(([category, fee]) => ({
+        category,
+        fee: priceConfig.hasSubunit
+          ? Math.round(Number(fee) * 100)
+          : Math.round(Number(fee)),
+      }))
+
     mutation.mutate({
       departure, destination, date,
-      capacity:     Math.round(Number(availableKg) * 1000),
-      price_per_kg: pricePerKgForBackend,
-      currency:     tripCurrency,
-      type_trip:    typeTrip,
+      capacity:       Math.round(Number(availableKg) * 1000),
+      price_per_kg:   pricePerKgForBackend,
+      currency:       tripCurrency,
+      type_trip:      typeTrip,
+      category_fees:  categoryFeesForBackend,
       ...(pickupExact ? {
         pickup_address:          pickupAddress || `${pickupExact.lat.toFixed(5)}, ${pickupExact.lng.toFixed(5)}`,
         pickup_city:             pickupCity || departure,
@@ -287,6 +315,7 @@ export default function CreateTripPage() {
           <h2 className="text-sm font-semibold text-gray-700 mb-5">⚖️ Capacité & Prix</h2>
           <div className="flex flex-col gap-6">
 
+            {/* Capacité */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700">Capacité disponible (kg) *</label>
               <div className="flex items-center gap-3">
@@ -300,29 +329,20 @@ export default function CreateTripPage() {
               <div className="flex justify-between text-xs text-gray-400"><span>1 kg</span><span>50 kg</span></div>
             </div>
 
+            {/* Prix au kg */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700">
                 Prix par kg ({tripSymbol}/kg) *
               </label>
               <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={priceConfig.min}
-                  max={priceConfig.max}
-                  step={priceConfig.step}
-                  value={pricePerKg}
-                  onChange={(e) => setPricePerKg(e.target.value)}
-                  className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer"
-                />
-                <input
-                  type="number"
-                  min={priceConfig.min}
-                  max={priceConfig.max}
-                  step={priceConfig.step}
-                  value={pricePerKg}
-                  onChange={(e) => setPricePerKg(e.target.value)}
-                  className="w-24 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none"
-                />
+                <input type="range"
+                  min={priceConfig.min} max={priceConfig.max} step={priceConfig.step}
+                  value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)}
+                  className="flex-1 h-2 rounded-full accent-[#1B3A6B] cursor-pointer" />
+                <input type="number"
+                  min={priceConfig.min} max={priceConfig.max} step={priceConfig.step}
+                  value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)}
+                  className="w-24 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none" />
               </div>
               <div className="flex justify-between text-xs text-gray-400">
                 <span>{priceConfig.min.toLocaleString('fr-FR')} {tripSymbol}</span>
@@ -338,6 +358,7 @@ export default function CreateTripPage() {
               </span>
             </div>
 
+            {/* Type de trajet */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">Type de trajet</label>
               <select value={typeTrip} onChange={(e) => setTypeTrip(e.target.value)} required
@@ -347,6 +368,40 @@ export default function CreateTripPage() {
                 <option value="sur_devis">Sur devis</option>
               </select>
             </div>
+
+            {/* Forfaits par catégorie */}
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Forfaits par type d'article{' '}
+                  <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Supplément fixe ajouté au prix au kg, par article transporté.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {CATEGORIES.map(({ value, label, icon }) => (
+                  <div key={value} className="flex items-center gap-3 py-1">
+                    <span className="text-base w-6 shrink-0 text-center">{icon}</span>
+                    <span className="text-sm text-gray-700 flex-1">{label}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <input
+                        type="number"
+                        min={0}
+                        step={priceConfig.hasSubunit ? 0.5 : 100}
+                        placeholder="—"
+                        value={categoryFees[value] ?? ''}
+                        onChange={(e) => setCategoryFee(value, e.target.value)}
+                        className="w-24 text-center bg-[#EBF4FF] text-[#1B3A6B] font-bold text-sm px-2 py-1.5 rounded-[10px] border border-[#1B3A6B]/20 focus:outline-none placeholder:text-gray-300"
+                      />
+                      <span className="text-xs text-gray-400 w-10 shrink-0">{tripSymbol}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </Card>
       )}
@@ -368,7 +423,9 @@ export default function CreateTripPage() {
                   setPickupApprox(approx.lat !== 0 ? approx : null)
                 }} />
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">Instructions <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <label className="text-sm font-medium text-gray-700">
+                  Instructions <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
                 <textarea value={pickupInstructions} onChange={(e) => setPickupInstructions(e.target.value)}
                   rows={2} placeholder="Ex : Sonner à l'interphone…"
                   className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
@@ -390,7 +447,9 @@ export default function CreateTripPage() {
                   setDeliveryApprox(approx.lat !== 0 ? approx : null)
                 }} />
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">Instructions <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                <label className="text-sm font-medium text-gray-700">
+                  Instructions <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
                 <textarea value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)}
                   rows={2} placeholder="Ex : Appeler à l'arrivée…"
                   className="w-full rounded-[10px] border border-gray-300 px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)]" />
@@ -398,7 +457,9 @@ export default function CreateTripPage() {
             </div>
           </Card>
 
-          <p className="text-xs text-gray-400 text-center">Les points de RDV sont optionnels — vous pouvez les ajouter plus tard.</p>
+          <p className="text-xs text-gray-400 text-center">
+            Les points de RDV sont optionnels — vous pouvez les ajouter plus tard.
+          </p>
         </div>
       )}
 

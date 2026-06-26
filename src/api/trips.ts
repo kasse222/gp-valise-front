@@ -34,6 +34,7 @@ export interface CreateTripPayload {
   capacity:     number
   price_per_kg: number
   currency:     string
+  category_fees?: { category: string; fee: number }[]
   type_trip:    string
   // Pickup location — optionnel
   pickup_address?:               string
