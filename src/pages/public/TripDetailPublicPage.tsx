@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 
 import { getTrip } from '@/api/trips'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatAmount } from '@/lib/utils'
 import { Button, Card, Spinner } from '@/components/ui'
 import { useAuthStore, isSender } from '@/store/authStore'
 import type { Trip } from '@/types'
@@ -110,7 +110,7 @@ export default function TripDetailPublicPage() {
 
   const kgDispo   = trip.grams_disponible / 1000
   const kgTotal   = trip.capacity / 1000
-  const prixParKg = trip.price_per_kg / 100
+  const tripCurrency = (trip as any).currency ?? 'XOF'
   const isReservable = trip.is_reservable && kgDispo > 0
 
   return (
@@ -156,7 +156,7 @@ export default function TripDetailPublicPage() {
             </div>
           )}
           <div className="flex items-center gap-3 mt-4">
-            <span className="text-2xl font-bold font-mono">{prixParKg.toFixed(2)} €</span>
+            <span className="text-2xl font-bold font-mono">{formatAmount(trip.price_per_kg, tripCurrency)}</span>
             <span className="text-white/70 text-sm">/ kg</span>
             {trip.type_badge && (
               <span className="ml-auto px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white">

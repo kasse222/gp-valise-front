@@ -55,8 +55,8 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
   const [recipientEmail, setRecipientEmail] = useState('')
 
   const maxKg      = trip.grams_disponible / 1000
-  const pricePerKg = trip.price_per_kg / 100
-  const totalCents = Math.round(kgReserved * trip.price_per_kg)
+  const tripCurrency = (trip as any).currency ?? 'XOF'
+  const totalCents   = Math.round(kgReserved * trip.price_per_kg)
 
   // Sileye #5 — sync slider ↔ input texte
   const handleSliderChange = (val: number) => {
@@ -156,7 +156,7 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
             {trip.date && <span>{formatDate(trip.date)}</span>}
             <span className="text-gray-300" aria-hidden>·</span>
-            <span className="font-medium text-gray-700">{pricePerKg.toFixed(2)} €/kg</span>
+            <span className="font-medium text-gray-700">{formatAmount(trip.price_per_kg, tripCurrency)}/kg</span>
             <span className="text-gray-300" aria-hidden>·</span>
             <span>{maxKg.toFixed(1)} kg dispo</span>
           </div>
@@ -273,7 +273,7 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
             {/* Total */}
             <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
               <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
-              <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents)}</span>
+              <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents, tripCurrency)}</span>
             </div>
 
             <div className="flex gap-3 pt-1">
@@ -301,8 +301,8 @@ interface TripCardProps {
 
 function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCardProps) {
   const navigate  = useNavigate()
-  const kgDispo   = (trip.grams_disponible / 1000).toFixed(1)
-  const prixParKg = (trip.price_per_kg / 100).toFixed(2)
+  const kgDispo     = (trip.grams_disponible / 1000).toFixed(1)
+  const tripCurrency = (trip as any).currency ?? 'XOF'
   const hasPickup   = !!trip.pickup_location
   const hasDelivery = !!trip.delivery_location
   const traveler    = trip.user
@@ -330,7 +330,7 @@ function TripCard({ trip, onBook, canBook, isLoggedIn, isTravelerUser }: TripCar
           </span>
         )}
         <div className="flex items-center gap-3">
-          <span className="font-bold text-[#1B3A6B]">{prixParKg} €/kg</span>
+          <span className="font-bold text-[#1B3A6B]">{formatAmount(trip.price_per_kg, tripCurrency)}/kg</span>
           <span className="text-gray-300" aria-hidden>·</span>
           <span>{kgDispo} kg dispo</span>
         </div>
