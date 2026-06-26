@@ -335,10 +335,28 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
 
             </div>
 
+            {/* Garanties SafeMove */}
+            <div className="rounded-[10px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-xs font-semibold text-emerald-700 mb-2">🛡️ Inclus avec SafeMove</p>
+              <ul className="flex flex-col gap-1">
+                {[
+                  'Paiement bloqué jusqu\'à la livraison confirmée',
+                  'Voyageur vérifié (KYC)',
+                  'Code secret + QR de remise',
+                  'Assistance en cas de litige',
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-xs text-emerald-800">
+                    <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <div className="flex gap-3 pt-1">
               <Button type="button" variant="secondary" className="flex-1" onClick={onClose} disabled={mutation.isPending}>Annuler</Button>
               <Button type="submit" variant="primary" className="flex-1" loading={mutation.isPending} disabled={!canSubmit}>
-                Confirmer la réservation
+                Réserver et payer en sécurité 🔒
               </Button>
             </div>
           </form>
