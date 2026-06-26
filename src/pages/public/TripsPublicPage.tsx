@@ -277,17 +277,62 @@ function BookingModal({ trip, onClose }: BookingModalProps) {
                 className="w-full px-4 py-3 rounded-[10px] border border-gray-300 text-sm resize-none focus:outline-none focus:border-[#1B3A6B] focus:shadow-[0_0_0_3px_rgba(27,58,107,0.2)] text-gray-900 placeholder-gray-400" />
             </div>
 
-            {/* Total */}
-            <div className="flex items-center justify-between bg-[#EBF4FF] rounded-[10px] px-4 py-3">
-              <div>
-                <span className="text-sm text-[#1B3A6B] font-medium">Total estimé</span>
-                {feesTotal > 0 && (
-                  <p className="text-xs text-[#1B3A6B]/70 mt-0.5">
-                    dont {formatAmount(feesTotal, tripCurrency)} de forfaits articles
-                  </p>
-                )}
+            {/* Devis détaillé */}
+            <div className="bg-[#EBF4FF] rounded-[12px] px-4 py-4 flex flex-col gap-2">
+
+              {/* Ligne poids */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#1B3A6B]/80">
+                  {kgReserved} kg × {formatAmount(trip.price_per_kg, tripCurrency)}
+                </span>
+                <span className="font-mono font-medium text-[#1B3A6B]">
+                  {formatAmount(Math.round(kgReserved * trip.price_per_kg), tripCurrency)}
+                </span>
               </div>
-              <span className="text-lg font-bold text-[#1B3A6B] font-mono">{formatAmount(totalCents, tripCurrency)}</span>
+
+              {/* Lignes forfaits — uniquement les catégories présentes dans les articles */}
+              {feesTotal > 0 && (() => {
+                // Groupe par catégorie pour éviter les doublons de ligne
+                const feeLines: Array<{ icon: string; label: string; count: number; fee: number }> = []
+                items.forEach((item) => {
+                  const feeDef = categoryFees.find((f) => f.category === item.category)
+                  if (!feeDef) return
+                  const existing = feeLines.find((l) => l.label === (feeDef as any).category_label)
+                  if (existing) { existing.count++; existing.fee += feeDef.fee }
+                  else feeLines.push({
+                    icon:  (feeDef as any).category_icon ?? '📦',
+                    label: (feeDef as any).category_label ?? feeDef.category,
+                    count: 1,
+                    fee:   feeDef.fee,
+                  })
+                })
+                return (
+                  <>
+                    <p className="text-xs font-semibold text-[#1B3A6B]/60 mt-1 uppercase tracking-wide">
+                      Articles spéciaux
+                    </p>
+                    {feeLines.map((line) => (
+                      <div key={line.label} className="flex items-center justify-between text-sm">
+                        <span className="text-[#1B3A6B]/80">
+                          {line.icon} {line.label}{line.count > 1 ? ` ×${line.count}` : ''}
+                        </span>
+                        <span className="font-mono font-medium text-[#1B3A6B]">
+                          +{formatAmount(line.fee, tripCurrency)}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )
+              })()}
+
+              {/* Séparateur */}
+              <div className="border-t border-[#1B3A6B]/20 mt-1 pt-2 flex items-center justify-between">
+                <span className="text-sm font-bold text-[#1B3A6B]">TOTAL</span>
+                <span className="text-lg font-bold text-[#1B3A6B] font-mono">
+                  {formatAmount(totalCents, tripCurrency)}
+                </span>
+              </div>
+
             </div>
 
             <div className="flex gap-3 pt-1">
