@@ -8,13 +8,14 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import LandingPage from '@/pages/public/LandingPage'
 import TripsPublicPage from '@/pages/public/TripsPublicPage'
 import TripDetailPublicPage from '@/pages/public/TripDetailPublicPage'
+import GpPublicProfilePage from '@/pages/public/GpPublicProfilePage'
+import TrackingPage from '@/pages/public/TrackingPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import SenderDashboard from '@/pages/sender/DashboardPage'
 import TravelerDashboard from '@/pages/traveler/DashboardPage'
 import PaymentSuccessPage from '@/pages/payment/PaymentSuccessPage'
 import PaymentCancelPage from '@/pages/payment/PaymentCancelPage'
-import GpPublicProfilePage from '@/pages/public/GpPublicProfilePage'
 
 import { useAuthStore, isSender } from '@/store/authStore'
 
@@ -97,8 +98,6 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/trips" element={<TripsPublicPage />} />
               <Route path="/trips/:id" element={<TripDetailPublicPage />} />
-
-              {/* Profil public GP — lien partageable WhatsApp */}
               <Route path="/gp/:id" element={<GpPublicProfilePage />} />
 
               {/* Auth */}
@@ -114,6 +113,9 @@ export default function App() {
               {/* Payment callbacks */}
               <Route path="/payment/success" element={<PaymentSuccessPage />} />
               <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+
+              {/* Tracking public — sans auth */}
+              <Route path="/track/:tracking_id" element={<TrackingPage />} />
 
               {/* Default */}
               <Route path="*" element={<Navigate to="/login" replace />} />
