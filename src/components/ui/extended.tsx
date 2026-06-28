@@ -1,6 +1,7 @@
 /**
- * Safe Move — Composants UI étendus
- * Spinner · Skeleton · Avatar · CountdownTimer · ConfirmModal · EmptyState amélioré
+ * SafeMove — Extended UI Components v2.0
+ * Spinner · Skeleton · Avatar · CountdownTimer · EmptyState · ConfirmModal
+ * Animations premium, finitions soignées
  */
 
 import { useEffect, useState } from 'react'
@@ -9,9 +10,9 @@ import { Button } from './Button'
 import { Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-// ══════════════════════════════════════════════════════════════════════════
-// SPINNER
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   SPINNER
+   ══════════════════════════════════════════════════════ */
 
 type SpinnerSize = 'sm' | 'md' | 'lg'
 
@@ -39,12 +40,22 @@ export function Spinner({
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SKELETON
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   SKELETON — shimmer animé
+   ══════════════════════════════════════════════════════ */
 
 function SkeletonBase({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse bg-gray-200 rounded-lg', className)} aria-hidden />
+  return (
+    <div
+      className={cn('rounded-lg overflow-hidden relative', className)}
+      aria-hidden
+      style={{
+        background: 'linear-gradient(90deg, #f1f5f9 0%, #e8edf2 40%, #f1f5f9 80%)',
+        backgroundSize: '200% 100%',
+        animation: 'sm-shimmer 1.6s ease-in-out infinite',
+      }}
+    />
+  )
 }
 
 export function SkeletonText({ className }: { className?: string }) {
@@ -54,7 +65,10 @@ export function SkeletonText({ className }: { className?: string }) {
 export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
-      className={cn('bg-white border border-gray-100 rounded-[14px] p-5 shadow-sm flex flex-col gap-4', className)}
+      className={cn(
+        'bg-white border border-slate-100 rounded-[16px] p-5 shadow-sm flex flex-col gap-4',
+        className,
+      )}
       aria-hidden
     >
       <div className="flex items-center justify-between">
@@ -74,24 +88,30 @@ export function SkeletonList({ count = 3, className }: { count?: number; classNa
   return (
     <div className={cn('flex flex-col gap-4', className)} role="status" aria-label="Chargement…">
       {Array.from({ length: count }).map((_, i) => (
-        <SkeletonCard key={i} />
+        <SkeletonCard key={i} className="opacity-100" style={{ opacity: 1 - i * 0.15 } as React.CSSProperties} />
       ))}
     </div>
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// AVATAR
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   AVATAR — avec fallback initiales animées
+   ══════════════════════════════════════════════════════ */
 
 const avatarSizes = {
+  xs: 'h-6 w-6 text-[10px]',
   sm: 'h-8 w-8 text-xs',
   md: 'h-10 w-10 text-sm',
   lg: 'h-12 w-12 text-base',
+  xl: 'h-16 w-16 text-xl',
 }
 
 function getInitials(name: string): string {
-  return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase() ?? '')
+    .join('')
 }
 
 export function Avatar({
@@ -99,11 +119,13 @@ export function Avatar({
   src,
   size = 'md',
   className,
+  ring = false,
 }: {
   name:       string
   src?:       string
-  size?:      'sm' | 'md' | 'lg'
+  size?:      keyof typeof avatarSizes
   className?: string
+  ring?:      boolean
 }) {
   const [imgError, setImgError] = useState(false)
 
@@ -114,7 +136,12 @@ export function Avatar({
         alt={name}
         loading="lazy"
         onError={() => setImgError(true)}
-        className={cn('rounded-full object-cover shrink-0', avatarSizes[size], className)}
+        className={cn(
+          'rounded-full object-cover shrink-0 transition-opacity duration-300',
+          ring && 'ring-2 ring-white shadow-sm',
+          avatarSizes[size],
+          className,
+        )}
       />
     )
   }
@@ -122,11 +149,14 @@ export function Avatar({
   return (
     <div
       className={cn(
-        'rounded-full bg-[#EBF4FF] text-[#1B3A6B] font-semibold',
-        'flex items-center justify-center shrink-0',
+        'rounded-full flex items-center justify-center shrink-0 font-semibold text-white',
+        ring && 'ring-2 ring-white shadow-sm',
         avatarSizes[size],
         className,
       )}
+      style={{
+        background: 'linear-gradient(135deg, #1B3A6B 0%, #3b82f6 100%)',
+      }}
       aria-label={name}
       role="img"
     >
@@ -135,9 +165,9 @@ export function Avatar({
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// COUNTDOWN TIMER
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   COUNTDOWN TIMER
+   ══════════════════════════════════════════════════════ */
 
 function getRemaining(expiresAt: string): number {
   return Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
@@ -174,19 +204,21 @@ export function CountdownTimer({
 
   const isUrgent  = remaining < 600
   const isWarning = remaining < 3600
+  const pct       = Math.min((remaining / 3600) * 100, 100)
 
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-mono font-semibold',
-        isUrgent              ? 'bg-red-100 text-red-700'
-          : isWarning         ? 'bg-amber-100 text-amber-700'
-          : 'bg-blue-100 text-blue-700',
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-mono font-semibold relative overflow-hidden',
+        isUrgent              ? 'bg-red-100 text-red-700 border border-red-200'
+          : isWarning         ? 'bg-amber-100 text-amber-700 border border-amber-200'
+          : 'bg-blue-100 text-blue-700 border border-blue-200',
+        isUrgent && 'animate-[sm-pulse-glow_1.5s_ease-in-out_infinite]',
         className,
       )}
       role="timer"
       aria-live="polite"
-      aria-label={`Temps restant pour payer : ${formatCountdown(remaining)}`}
+      aria-label={`Temps restant : ${formatCountdown(remaining)}`}
     >
       <span aria-hidden>⏱</span>
       {remaining === 0 ? 'Expiré' : formatCountdown(remaining)}
@@ -194,9 +226,9 @@ export function CountdownTimer({
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// EMPTY STATE (remplace EmptyState.tsx existant, même API)
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   EMPTY STATE — with scale-in animation
+   ══════════════════════════════════════════════════════ */
 
 interface EmptyStateProps {
   icon?:        LucideIcon
@@ -209,26 +241,38 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div
-      className={cn('flex flex-col items-center justify-center text-center py-16 px-6 gap-4', className)}
+      className={cn(
+        'flex flex-col items-center justify-center text-center py-16 px-6 gap-4',
+        'animate-[sm-scale-in_0.4s_cubic-bezier(0.34,1.56,0.64,1)_both]',
+        className,
+      )}
       role="status"
     >
       {Icon && (
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#EBF4FF] to-[#DBEAFE]">
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, #EBF4FF 0%, #dbeafe 100%)',
+            boxShadow: '0 4px 16px rgba(27,58,107,0.10)',
+          }}
+        >
           <Icon className="h-8 w-8 text-[#1B3A6B] opacity-70" />
         </div>
       )}
-      <div className="flex flex-col gap-1.5 max-w-xs">
-        <p className="font-semibold text-gray-800 text-base">{title}</p>
-        {description && <p className="text-sm text-gray-500 leading-relaxed">{description}</p>}
+      <div className="flex flex-col gap-2 max-w-xs">
+        <p className="font-semibold text-slate-800 text-base">{title}</p>
+        {description && (
+          <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
+        )}
       </div>
       {action}
     </div>
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// CONFIRM MODAL
-// ══════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   CONFIRM MODAL — slide-up + backdrop blur
+   ══════════════════════════════════════════════════════ */
 
 interface ConfirmModalProps {
   open:          boolean
@@ -243,16 +287,14 @@ interface ConfirmModalProps {
 }
 
 export function ConfirmModal({
-  open,
-  title,
-  description,
+  open, title, description,
   confirmLabel = 'Confirmer',
   cancelLabel  = 'Annuler',
   variant      = 'danger',
   loading      = false,
-  onConfirm,
-  onCancel,
+  onConfirm, onCancel,
 }: ConfirmModalProps) {
+  // Trap focus
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     if (open) document.addEventListener('keydown', onKey)
@@ -268,18 +310,59 @@ export function ConfirmModal({
       aria-labelledby="confirm-title"
       aria-describedby="confirm-desc"
       className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-4"
+      style={{ animation: 'sm-fade-in 0.15s ease both' }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} aria-hidden />
-      <div className="relative w-full max-w-sm bg-white rounded-[20px] shadow-lg p-6 flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <h2 id="confirm-title" className="text-base font-semibold text-gray-900">{title}</h2>
-          <p id="confirm-desc" className="text-sm text-gray-500 leading-relaxed">{description}</p>
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onClick={onCancel}
+        aria-hidden
+      />
+
+      {/* Panel */}
+      <div
+        className="relative w-full max-w-sm bg-white rounded-[24px] p-6 flex flex-col gap-5"
+        style={{
+          boxShadow: '0 24px 64px rgba(15,23,42,0.20)',
+          animation: 'sm-scale-in 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
+        }}
+      >
+        {/* Icon */}
+        <div
+          className={cn(
+            'w-12 h-12 rounded-2xl flex items-center justify-center mx-auto',
+            variant === 'danger' ? 'bg-red-100' : 'bg-blue-100',
+          )}
+        >
+          <span className="text-2xl" aria-hidden>
+            {variant === 'danger' ? '⚠️' : '❓'}
+          </span>
         </div>
+
+        <div className="flex flex-col gap-2 text-center">
+          <h2 id="confirm-title" className="text-base font-bold text-slate-900">
+            {title}
+          </h2>
+          <p id="confirm-desc" className="text-sm text-slate-500 leading-relaxed">
+            {description}
+          </p>
+        </div>
+
         <div className="flex flex-col-reverse sm:flex-row gap-3">
-          <Button variant="secondary" className="flex-1" onClick={onCancel} disabled={loading}>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={onCancel}
+            disabled={loading}
+          >
             {cancelLabel}
           </Button>
-          <Button variant={variant} className="flex-1" onClick={onConfirm} loading={loading}>
+          <Button
+            variant={variant}
+            className="flex-1"
+            onClick={onConfirm}
+            loading={loading}
+          >
             {confirmLabel}
           </Button>
         </div>

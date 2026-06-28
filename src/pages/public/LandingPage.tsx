@@ -1,106 +1,215 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getTrips } from '@/api/trips'
 import { useAuthStore, isSender } from '@/store/authStore'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatAmount } from '@/lib/utils'
 import type { Trip } from '@/types'
 import { WaitlistForm, SkeletonCard } from '@/components/ui'
 import { CityInputInline } from '@/components/ui/CitySelect'
 import {
-  User, Package, Plane, Shield, CheckCircle,
+  Package, Plane, Shield, CheckCircle,
   DollarSign, Calendar, Menu, X, ArrowRight,
-  MapPin, Star, TrendingUp, Lock,
+  MapPin, Star, Lock, TrendingUp, ChevronDown, User,
 } from 'lucide-react'
 
-// ─── Animations CSS injectées ────────────────────────────────────────────
-const ANIM_STYLES = `
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(32px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes slideRight {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
-}
-.anim-fade-up   { animation: fadeUp 0.7s ease both; }
-.anim-fade-in   { animation: fadeIn 0.5s ease both; }
-.anim-slide-r   { animation: slideRight 0.6s ease both; }
-.anim-float     { animation: float 4s ease-in-out infinite; }
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-`
+// ── Scroll reveal hook ───────────────────────────────────────────────────────
 
-// ─── Step ──────────────────────────────────────────────────────────────────
-function Step({ number, text }: { number: number; text: string }) {
+function useReveal(threshold = 0.12) {
+  const ref     = useRef<HTMLDivElement>(null)
+  const [vis, setVis] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setVis(true); obs.disconnect() }
+    }, { threshold })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, visible: vis }
+}
+
+// ── Animated counter ─────────────────────────────────────────────────────────
+
+function AnimCount({ to, suffix = '', duration = 1200 }: { to: number; suffix?: string; duration?: number }) {
+  const { ref, visible } = useReveal(0.3)
+  const [val, setVal]    = useState(0)
+  useEffect(() => {
+    if (!visible) return
+    const start = Date.now()
+    const step  = () => {
+      const p = Math.min((Date.now() - start) / duration, 1)
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * to))
+      if (p < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [visible, to, duration])
+  return <span ref={ref}>{val.toLocaleString('fr-FR')}{suffix}</span>
+}
+
+// ── Live counter widget ───────────────────────────────────────────────────────
+
+function LiveCounter() {
+  const [count, setCount] = useState(2847)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCount((n) => n + Math.floor(Math.random() * 3))
+    }, 3000)
+    return () => clearInterval(id)
+  }, [])
   return (
-    <div className="flex items-start gap-3">
-      <span className="flex-shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center bg-[#EBF4FF] text-[#1B3A6B]">
-        {number}
+    <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
       </span>
-      <p className="text-gray-600 text-sm leading-relaxed pt-0.5">{text}</p>
+      <span className="text-white/90 text-sm font-medium">
+        <span className="font-bold text-white">{count.toLocaleString('fr-FR')}</span> colis livrés cette semaine
+      </span>
     </div>
   )
 }
 
-// ─── Feature Card ───────────────────────────────────────────────────────────
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <div className="group bg-white border border-gray-100 rounded-[20px] shadow-sm p-6 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#EBF4FF] group-hover:bg-[#1B3A6B] transition-colors duration-300">
-        <div className="text-[#1B3A6B] group-hover:text-white transition-colors duration-300">{icon}</div>
-      </div>
-      <div>
-        <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-        <p className="text-gray-500 text-sm leading-relaxed">{description}</p>
-      </div>
-    </div>
-  )
-}
+// ── Floating hero mockup ─────────────────────────────────────────────────────
 
-// ─── Trip Card Preview ─────────────────────────────────────────────────────
-function TripCardPreview({ trip }: { trip: Trip }) {
-  const navigate = useNavigate()
+function HeroMockup() {
   return (
-    <div className="bg-white border border-gray-200 rounded-[14px] p-5 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-center gap-2 font-semibold text-gray-900 text-sm">
-        <span>{trip.departure}</span>
-        <Plane className="w-3 h-3 text-gray-400 shrink-0" aria-hidden />
-        <span>{trip.destination}</span>
-      </div>
-      <div className="flex flex-col gap-1.5 text-sm text-gray-500">
-        {trip.date && (
-          <span className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-gray-400" aria-hidden />
-            {formatDate(trip.date)}
+    <div className="relative w-full max-w-[340px] mx-auto" style={{ animation: 'sm-float 4s ease-in-out infinite' }}>
+      {/* Main card */}
+      <div
+        className="bg-white rounded-[24px] p-5 relative overflow-hidden"
+        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.2)' }}
+      >
+        {/* Subtle top gradient */}
+        <div className="absolute inset-x-0 top-0 h-1 rounded-t-[24px]"
+          style={{ background: 'linear-gradient(90deg, #1B3A6B, #3b82f6, #60a5fa)' }} aria-hidden />
+
+        <div className="flex items-center justify-between mb-4 pt-1">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Trajet disponible</span>
+          <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+            Actif
           </span>
-        )}
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-[#1B3A6B]">{(trip.price_per_kg / 100).toFixed(2)} €/kg</span>
-          <span className="text-gray-300" aria-hidden>·</span>
-          <span>{(trip.grams_disponible / 1000).toFixed(1)} kg dispo</span>
         </div>
-        {trip.user?.full_name && <span className="text-gray-400 text-xs">Par {trip.user.full_name}</span>}
+
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-[#1B3A6B] shadow-sm" />
+            <div className="w-px h-10 bg-gradient-to-b from-[#1B3A6B]/40 to-[#3b82f6]/40" />
+            <div className="w-3 h-3 rounded-full bg-[#3b82f6] shadow-sm" />
+          </div>
+          <div className="flex flex-col gap-3 flex-1">
+            <div>
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Départ</p>
+              <p className="font-bold text-slate-900 text-sm">Casablanca 🇲🇦</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Arrivée</p>
+              <p className="font-bold text-slate-900 text-sm">Paris 🇫🇷</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Prix</p>
+            <p className="font-black text-[#1B3A6B] text-2xl leading-none">8€</p>
+            <p className="text-xs text-slate-400 font-medium">/kg</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 bg-slate-50 rounded-[14px] p-3 border border-slate-100">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0"
+            style={{ background: 'linear-gradient(135deg, #1B3A6B, #3b82f6)' }}>Y</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-900">Youssef T.</p>
+            <div className="flex items-center gap-0.5 mt-0.5">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+              ))}
+              <span className="text-xs text-slate-400 ml-1 font-medium">4.9</span>
+            </div>
+          </div>
+          <button className="bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-full shadow-sm">
+            Réserver
+          </button>
+        </div>
       </div>
+
+      {/* Floating badge top-right */}
+      <div
+        className="absolute -top-3 -right-3 bg-white rounded-[14px] px-3 py-2 flex items-center gap-2 border border-slate-100"
+        style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.12)', animation: 'sm-float 4s ease-in-out infinite 0.5s' }}
+      >
+        <Lock className="w-4 h-4 text-emerald-500" />
+        <span className="text-xs font-bold text-slate-700">Paiement sécurisé</span>
+      </div>
+
+      {/* Floating badge bottom-left */}
+      <div
+        className="absolute -bottom-3 -left-3 bg-white rounded-[14px] px-3 py-2 flex items-center gap-2 border border-slate-100"
+        style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.12)', animation: 'sm-float 4s ease-in-out infinite 1s' }}
+      >
+        <CheckCircle className="w-4 h-4 text-[#1B3A6B]" />
+        <span className="text-xs font-bold text-slate-700">Livraison confirmée</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Trip card preview ─────────────────────────────────────────────────────────
+
+function TripCardPreview({ trip }: { trip: Trip }) {
+  const navigate   = useNavigate()
+  const currency   = (trip as any).currency ?? 'XOF'
+  const kgDispo    = (trip.grams_disponible / 1000).toFixed(1)
+
+  return (
+    <div
+      className="bg-white border border-slate-100 rounded-[18px] p-5 flex flex-col gap-4 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer group"
+      style={{ boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}
+      onClick={() => navigate(`/trips/${trip.id}`)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+          <span>{trip.departure}</span>
+          <Plane className="w-3 h-3 text-slate-400 shrink-0" aria-hidden />
+          <span>{trip.destination}</span>
+        </div>
+        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+          Actif
+        </span>
+      </div>
+
+      {trip.date && (
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          <Calendar className="h-3.5 w-3.5" aria-hidden />
+          {formatDate(trip.date)}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <span className="font-black text-[#1B3A6B] text-lg">
+          {formatAmount(trip.price_per_kg, currency)}<span className="text-sm font-semibold text-slate-400">/kg</span>
+        </span>
+        <span className="text-xs text-slate-500">{kgDispo} kg dispo</span>
+      </div>
+
+      {trip.user && (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+            style={{ background: 'linear-gradient(135deg, #1B3A6B, #3b82f6)' }}>
+            {trip.user.first_name?.[0]?.toUpperCase() ?? '?'}
+          </div>
+          <span className="text-xs text-slate-600 font-medium">{trip.user.first_name} {trip.user.last_name?.[0]}.</span>
+          {trip.user.kyc_verified && (
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full font-semibold ml-auto">
+              ✓ KYC
+            </span>
+          )}
+        </div>
+      )}
+
       <button
-        onClick={() => navigate(`/trips/${trip.id}`)}
-        className="w-full mt-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-semibold px-4 py-3 rounded-full transition-colors duration-200 min-h-[48px]"
+        className="w-full bg-[#1B3A6B] text-white text-sm font-bold py-3 rounded-full transition-all duration-200 hover:bg-[#2351a0] group-hover:shadow-md"
+        onClick={(e) => { e.stopPropagation(); navigate(`/trips/${trip.id}`) }}
       >
         Voir ce trajet
       </button>
@@ -108,433 +217,534 @@ function TripCardPreview({ trip }: { trip: Trip }) {
   )
 }
 
-// ─── Mockup UI flottant ───────────────────────────────────────────────────
-function HeroMockup() {
+// ── Feature card ─────────────────────────────────────────────────────────────
+
+function FeatureCard({ icon, title, description, delay = 0 }: {
+  icon: React.ReactNode; title: string; description: string; delay?: number
+}) {
+  const { ref, visible } = useReveal()
   return (
-    <div className="relative w-full max-w-sm mx-auto anim-float">
-      {/* Card principale */}
-      <div className="bg-white rounded-[24px] shadow-2xl p-5 border border-white/20">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Trajet disponible</span>
-          <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">Actif</span>
-        </div>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex flex-col items-center">
-            <div className="w-3 h-3 rounded-full bg-[#1B3A6B]" />
-            <div className="w-0.5 h-8 bg-gray-200 my-1" />
-            <div className="w-3 h-3 rounded-full bg-[#2B6CB0]" />
-          </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <div>
-              <p className="text-xs text-gray-400">Départ</p>
-              <p className="font-semibold text-gray-900 text-sm">Casablanca 🇲🇦</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Arrivée</p>
-              <p className="font-semibold text-gray-900 text-sm">Paris 🇫🇷</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400">Prix</p>
-            <p className="font-bold text-[#1B3A6B] text-lg">8€/kg</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 bg-gray-50 rounded-[10px] p-3">
-          <div className="w-8 h-8 rounded-full bg-[#1B3A6B] flex items-center justify-center text-white text-xs font-bold">Y</div>
-          <div>
-            <p className="text-xs font-semibold text-gray-900">Youssef T.</p>
-            <div className="flex items-center gap-0.5">
-              {[1,2,3,4,5].map(i => <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />)}
-              <span className="text-xs text-gray-400 ml-1">4.9</span>
-            </div>
-          </div>
-          <button className="ml-auto bg-[#1B3A6B] text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-            Réserver
-          </button>
+    <div
+      ref={ref}
+      className="group bg-white border border-slate-100 rounded-[20px] p-7 flex flex-col gap-5 transition-all duration-300"
+      style={{
+        boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
+        opacity:    visible ? 1 : 0,
+        transform:  visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms, box-shadow 0.2s ease`,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(27,58,107,0.14)'
+        ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)'
+        ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
+      }}
+    >
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#EBF4FF] border border-[#1B3A6B]/10 transition-all duration-300 group-hover:bg-[#1B3A6B] group-hover:scale-110">
+        <div className="text-[#1B3A6B] group-hover:text-white transition-colors duration-300">
+          {icon}
         </div>
       </div>
-
-      {/* Badge flottant — escrow */}
-      <div className="absolute -top-4 -right-4 bg-white rounded-[12px] shadow-lg px-3 py-2 flex items-center gap-2 border border-gray-100">
-        <Lock className="w-4 h-4 text-emerald-500" />
-        <span className="text-xs font-semibold text-gray-700">Paiement sécurisé</span>
-      </div>
-
-      {/* Badge flottant — livraison */}
-      <div className="absolute -bottom-4 -left-4 bg-white rounded-[12px] shadow-lg px-3 py-2 flex items-center gap-2 border border-gray-100">
-        <CheckCircle className="w-4 h-4 text-[#1B3A6B]" />
-        <span className="text-xs font-semibold text-gray-700">Livraison confirmée</span>
+      <div>
+        <h3 className="font-bold text-slate-900 text-base mb-2">{title}</h3>
+        <p className="text-slate-500 text-sm leading-relaxed">{description}</p>
       </div>
     </div>
   )
 }
 
-// ─── Stat ─────────────────────────────────────────────────────────────────
-function Stat({ value, label }: { value: string; label: string }) {
+// ── Step ─────────────────────────────────────────────────────────────────────
+
+function Step({ number, text }: { number: number; text: string }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-3xl sm:text-4xl font-bold text-white">{value}</span>
-      <span className="text-blue-200 text-sm">{label}</span>
+    <div className="flex items-start gap-4">
+      <span className="flex-shrink-0 w-8 h-8 rounded-full text-sm font-black flex items-center justify-center bg-[#1B3A6B] text-white shadow-sm">
+        {number}
+      </span>
+      <p className="text-slate-600 text-sm leading-relaxed pt-1">{text}</p>
     </div>
   )
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────
+// ── Section header ────────────────────────────────────────────────────────────
+
+function SectionHeader({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+  const { ref, visible } = useReveal()
+  return (
+    <div
+      ref={ref}
+      className="text-center mb-14 transition-all duration-500"
+      style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(20px)' }}
+    >
+      <span className="inline-block bg-[#EBF4FF] text-[#1B3A6B] text-xs font-bold px-4 py-1.5 rounded-full mb-4 uppercase tracking-widest border border-[#1B3A6B]/15">
+        {eyebrow}
+      </span>
+      <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{title}</h2>
+      {sub && <p className="text-slate-500 mt-3 max-w-xl mx-auto text-sm">{sub}</p>}
+    </div>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [mounted,  setMounted]  = useState(false)
-  const navigate = useNavigate()
-
-  const [departure,   setDeparture]   = useState('')
+  const [menuOpen,  setMenuOpen]  = useState(false)
+  const [mounted,   setMounted]   = useState(false)
+  const [departure, setDeparture] = useState('')
   const [destination, setDestination] = useState('')
-  const [date,        setDate]        = useState('')
+  const [date,      setDate]      = useState('')
+  const navigate    = useNavigate()
+  const user        = useAuthStore((s) => s.user)
+  const dashPath    = user ? (isSender(user.role) ? '/sender' : '/traveler') : null
 
-  useEffect(() => { setMounted(true) }, [])
-
-  const user          = useAuthStore((s) => s.user)
-  const dashboardPath = user ? isSender(user.role) ? '/sender' : '/traveler' : null
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t) }, [])
 
   const { data: trips, isLoading } = useQuery({
-    queryKey: ['trips-public'],
-    queryFn: () => getTrips(),
+    queryKey: ['trips-landing'],
+    queryFn:  () => getTrips(),
     staleTime: 60_000,
   })
-  const previewTrips = trips?.slice(0, 3) ?? []
+  const preview = trips?.slice(0, 3) ?? []
 
   const navLinks = [
-    { label: 'Accueil',           href: '/' },
-    { label: 'Comment ça marche', href: '#how-it-works' },
+    { label: 'Comment ça marche', href: '#how' },
     { label: 'Nos services',      href: '#features' },
-    { label: 'Tarifs',            href: '#pricing' },
+    { label: 'Trajets',           href: '#trips' },
   ]
 
   return (
     <div className="min-h-screen font-sans">
-      <style>{ANIM_STYLES}</style>
 
-      {/* ── Navbar ─────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" aria-label="Navigation principale">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="shrink-0" aria-label="Accueil Safe Move">
-            <img src="/logo-icon.png" alt="" className="w-9 h-9 object-contain" aria-hidden /><img src="/logo-nav-hori.png" alt="Safe Move" className="h-10 object-contain" />
+      {/* ── Navbar ──────────────────────────────────────────────── */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100"
+        style={{ boxShadow: '0 1px 0 0 rgba(226,232,240,0.8)' }}
+        aria-label="Navigation principale"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[70px] flex items-center justify-between gap-8">
+          <Link to="/" className="shrink-0 flex items-center gap-2 group" aria-label="Accueil Safe Move">
+            <img src="/logo-icon.png" alt="" className="w-8 h-8 object-contain transition-transform duration-300 group-hover:scale-105" aria-hidden />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-8 object-contain" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {navLinks.map(link => (
               <a key={link.label} href={link.href}
-                className="text-sm text-gray-600 hover:text-[#1B3A6B] transition-colors font-medium">
+                className="text-sm text-slate-600 hover:text-[#1B3A6B] transition-colors font-semibold tracking-tight">
                 {link.label}
               </a>
             ))}
           </div>
 
           <div className="flex items-center gap-3">
-            {dashboardPath ? (
-              <Link to={dashboardPath}
-                className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors min-h-[48px]">
+            {dashPath ? (
+              <Link to={dashPath}
+                className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2351a0] text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-200 min-h-[44px] shadow-sm hover:shadow-md">
                 <User className="h-4 w-4" aria-hidden />
                 Mon espace
               </Link>
             ) : (
-              <Link to="/login"
-                className="flex items-center gap-2 bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors min-h-[48px]">
-                <User className="h-4 w-4" aria-hidden />
-                Se connecter
-              </Link>
+              <>
+                <Link to="/login"
+                  className="hidden sm:flex text-sm font-semibold text-slate-600 hover:text-[#1B3A6B] transition-colors min-h-[44px] items-center px-2">
+                  Connexion
+                </Link>
+                <Link to="/register"
+                  className="flex items-center gap-1.5 bg-[#1B3A6B] hover:bg-[#2351a0] text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-200 min-h-[44px] shadow-sm hover:shadow-md">
+                  Commencer <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </>
             )}
             <button onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}>
+              className="md:hidden p-2.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
+              aria-label={menuOpen ? 'Fermer' : 'Menu'}>
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)}
-                className="text-sm text-gray-600 hover:text-[#1B3A6B] py-2.5 min-h-[44px] flex items-center font-medium">
+          <div
+            className="md:hidden bg-white border-t border-slate-100 px-6 py-4 flex flex-col gap-1"
+            style={{ animation: 'sm-fade-up 0.2s ease both' }}
+          >
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-sm text-slate-700 hover:text-[#1B3A6B] py-3 min-h-[44px] flex items-center font-semibold border-b border-slate-50 last:border-0">
                 {link.label}
               </a>
             ))}
+            <div className="flex gap-3 pt-3">
+              <Link to="/login" className="flex-1 text-center py-3 text-sm font-semibold text-slate-700 border border-slate-200 rounded-full">
+                Connexion
+              </Link>
+              <Link to="/register" className="flex-1 text-center py-3 text-sm font-bold text-white bg-[#1B3A6B] rounded-full">
+                S'inscrire
+              </Link>
+            </div>
           </div>
         )}
       </nav>
 
-      {/* ── Hero — split layout ────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────────── */}
       <section
-        className="relative pt-20 min-h-screen flex items-center overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2544 40%, #1b3a6b 80%, #1e4a8a 100%)' }}
+        className="relative pt-[70px] min-h-screen flex items-center overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #050d1a 0%, #0a1628 30%, #0f2544 65%, #1B3A6B 100%)' }}
         aria-label="Bannière principale"
       >
-        {/* Fond particules / grille */}
-        <div className="absolute inset-0 opacity-10"
+        {/* Grid background */}
+        <div className="absolute inset-0 opacity-[0.07]"
           style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 1px, transparent 0)',
-            backgroundSize: '40px 40px',
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
           }} aria-hidden />
-        {/* Lueur bleue */}
-        <div className="absolute top-1/2 right-0 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', transform: 'translate(30%, -50%)' }}
-          aria-hidden />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        {/* Blue glow orbs */}
+        <div className="absolute top-1/4 right-[10%] w-[500px] h-[500px] rounded-full opacity-15 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', filter: 'blur(60px)' }} aria-hidden />
+        <div className="absolute bottom-1/4 left-[5%] w-[300px] h-[300px] rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #60a5fa 0%, transparent 70%)', filter: 'blur(40px)' }} aria-hidden />
 
-            {/* ── Colonne gauche — texte ──────────────────────────── */}
-            <div className={`flex flex-col gap-6 ${mounted ? 'anim-fade-up' : 'opacity-0'}`}>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-              {/* Badge */}
-              <div className="anim-fade-in delay-100 self-start flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-white/90 text-sm font-medium">Plateforme active · Sénégal · Maroc · France</span>
+            {/* Left — text */}
+            <div
+              className="flex flex-col gap-7"
+              style={{
+                opacity:   mounted ? 1 : 0,
+                transform: mounted ? 'translateY(0)' : 'translateY(32px)',
+                transition: 'opacity 0.7s ease, transform 0.7s ease',
+              }}
+            >
+              {/* Live counter */}
+              <div style={{ animationDelay: '100ms' }}>
+                <LiveCounter />
               </div>
 
-              {/* Titre */}
-              <h1 className="anim-fade-up delay-200 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight">
+              {/* Badge */}
+              <div className="self-start flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.05s both' : 'none' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+                <span className="text-white/90 text-sm font-semibold">Plateforme active · Sénégal · Maroc · France</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl sm:text-5xl lg:text-[60px] font-black text-white leading-[1.08] tracking-tight"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.1s both' : 'none' }}>
                 Envoyez vos colis via{' '}
-                <span style={{ background: 'linear-gradient(90deg, #60a5fa, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #818cf8 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>
                   des voyageurs
                 </span>{' '}
                 de confiance
               </h1>
 
-              {/* Sous-titre */}
-              <p className="anim-fade-up delay-300 text-lg text-blue-100/80 leading-relaxed max-w-lg">
-                Vous voyagez entre Dakar, Casablanca, Paris ou Abidjan ? Transportez des colis en toute sécurité et gagnez de l'argent sur chaque trajet. Paiement garanti après livraison.
+              {/* Subtitle */}
+              <p className="text-lg text-blue-100/75 leading-relaxed max-w-lg"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.18s both' : 'none' }}>
+                Connectez expéditeurs et voyageurs africains. Paiement escrow garanti, identités vérifiées, suivi en temps réel.
               </p>
 
-              {/* Badges pays */}
-              <div className="anim-fade-up delay-400 flex flex-wrap gap-2">
-                {['🇸🇳 Sénégal', '🇲🇦 Maroc', '🇫🇷 France', '🇨🇮 Côte d\'Ivoire', '🇧🇯 Bénin'].map((pays) => (
-                  <span key={pays} className="bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium px-3 py-1.5 rounded-full">
-                    {pays}
+              {/* Country pills */}
+              <div className="flex flex-wrap gap-2"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.26s both' : 'none' }}>
+                {['🇸🇳 Sénégal', '🇲🇦 Maroc', '🇫🇷 France', "🇨🇮 Côte d'Ivoire", '🇧🇯 Bénin'].map(p => (
+                  <span key={p} className="bg-white/10 border border-white/20 text-white/90 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    {p}
                   </span>
                 ))}
               </div>
 
               {/* CTAs */}
-              <div className="anim-fade-up delay-500 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-start gap-3"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.34s both' : 'none' }}>
                 <Link to="/trips"
-                  className="group flex items-center gap-2 bg-white hover:bg-[#EBF4FF] text-[#1B3A6B] font-bold px-8 py-4 rounded-full transition-all duration-200 text-sm shadow-lg hover:shadow-xl min-h-[52px]">
+                  className="group relative flex items-center gap-2 bg-white hover:bg-blue-50 text-[#1B3A6B] font-black px-8 py-4 rounded-full transition-all duration-200 text-sm overflow-hidden"
+                  style={{ boxShadow: '0 4px 24px rgba(255,255,255,0.25), 0 2px 8px rgba(0,0,0,0.2)' }}>
                   Rechercher un trajet
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
                 <Link to="/register?role=traveler"
-                  className="flex items-center gap-2 border-2 border-white/40 text-white hover:bg-white/10 hover:border-white/60 font-semibold px-8 py-4 rounded-full transition-all duration-200 text-sm min-h-[52px]">
+                  className="flex items-center gap-2 border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 font-bold px-8 py-4 rounded-full transition-all duration-200 text-sm backdrop-blur-sm">
                   💰 Gagner sur mes trajets
                 </Link>
               </div>
 
-              {/* Stats */}
-              <div className="anim-fade-up delay-600 flex items-center gap-6 pt-2">
-                <div className="flex items-center gap-2 text-white/70 text-sm">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                  <span>KYC vérifié</span>
-                </div>
-                <span className="text-white/20">·</span>
-                <div className="flex items-center gap-2 text-white/70 text-sm">
-                  <Lock className="w-4 h-4 text-blue-400" />
-                  <span>Escrow 48h</span>
-                </div>
-                <span className="text-white/20">·</span>
-                <div className="flex items-center gap-2 text-white/70 text-sm">
-                  <TrendingUp className="w-4 h-4 text-amber-400" />
-                  <span>Gains garantis</span>
-                </div>
+              {/* Trust badges */}
+              <div className="flex items-center gap-5 pt-1"
+                style={{ animation: mounted ? 'sm-fade-up 0.6s ease 0.42s both' : 'none' }}>
+                {[
+                  { icon: Shield, label: 'KYC vérifié', color: 'text-emerald-400' },
+                  { icon: Lock,   label: 'Escrow 48h',  color: 'text-blue-400' },
+                  { icon: TrendingUp, label: 'Gains garantis', color: 'text-amber-400' },
+                ].map(({ icon: Icon, label, color }) => (
+                  <div key={label} className="flex items-center gap-1.5 text-white/60 text-sm">
+                    <Icon className={`w-4 h-4 ${color}`} aria-hidden />
+                    <span>{label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* ── Colonne droite — mockup ─────────────────────────── */}
-            <div className={`hidden lg:flex items-center justify-center ${mounted ? 'anim-fade-in delay-300' : 'opacity-0'}`}>
+            {/* Right — mockup */}
+            <div className="hidden lg:flex items-center justify-center pr-4"
+              style={{
+                opacity:   mounted ? 1 : 0,
+                transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s',
+              }}>
               <HeroMockup />
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Stats bar ──────────────────────────────────────────────── */}
-      <section style={{ background: 'linear-gradient(90deg, #0f2544 0%, #1b3a6b 100%)' }}
-        className="border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-            <Stat value="50+"     label="Pays desservis" />
-            <Stat value="Gratuit" label="Inscription" />
-            <Stat value="Escrow"  label="Paiement sécurisé" />
-            <Stat value="KYC"     label="Identités vérifiées" />
+          {/* Scroll indicator */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40"
+            style={{ animation: 'sm-float 3s ease-in-out infinite' }}>
+            <span className="text-xs font-medium">Découvrir</span>
+            <ChevronDown className="w-4 h-4" />
           </div>
         </div>
       </section>
 
-      {/* ── Waitlist ────────────────────────────────────────────────── */}
-      <section className="bg-white py-14 border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Soyez parmi les premiers informés</h2>
-            <p className="text-gray-500 text-sm">Laissez votre email — on vous contacte au lancement.</p>
+      {/* ── Stats bar ────────────────────────────────────────────── */}
+      <section style={{ background: 'linear-gradient(90deg, #0a1628 0%, #1B3A6B 100%)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
+            {[
+              { value: 50,    suffix: '+', label: 'Pays desservis' },
+              { value: 1200,  suffix: '+', label: 'Voyageurs actifs' },
+              { value: 98,    suffix: '%', label: 'Satisfaction client' },
+              { value: 48,    suffix: 'h', label: 'Délai escrow max' },
+            ].map(({ value, suffix, label }) => (
+              <div key={label} className="flex flex-col items-center gap-1">
+                <span className="text-3xl sm:text-4xl font-black text-white">
+                  <AnimCount to={value} suffix={suffix} />
+                </span>
+                <span className="text-blue-200/70 text-sm font-medium">{label}</span>
+              </div>
+            ))}
           </div>
-          <WaitlistForm />
         </div>
       </section>
 
-      {/* ── Comment ça marche ──────────────────────────────────────── */}
-      <section id="how-it-works" className="bg-white py-20">
+      {/* ── How it works ──────────────────────────────────────────── */}
+      <section id="how" className="bg-white py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <span className="inline-block bg-[#EBF4FF] text-[#1B3A6B] text-xs font-semibold px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Simple & rapide</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Comment ça marche ?</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
-            <div className="flex flex-col gap-6 bg-gray-50 rounded-[20px] p-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1B3A6B]">
-                  <Package className="h-5 w-5 text-white" aria-hidden />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Pour les expéditeurs</h3>
-              </div>
-              <div className="flex flex-col gap-4 pl-2">
-                <Step number={1} text="Créez votre bagage avec ses dimensions et poids" />
-                <Step number={2} text="Trouvez un trajet qui correspond à votre destination" />
-                <Step number={3} text="Réservez et payez en toute sécurité (escrow)" />
-                <Step number={4} text="Suivez votre colis jusqu'à la livraison" />
-              </div>
-              <Link to="/trips" className="self-start flex items-center gap-1.5 text-sm font-semibold text-[#1B3A6B] hover:underline">
-                Rechercher un trajet <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="flex flex-col gap-6 bg-gray-50 rounded-[20px] p-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1B3A6B]">
-                  <Plane className="h-5 w-5 text-white" aria-hidden />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Pour les voyageurs (GP)</h3>
-              </div>
+          <SectionHeader eyebrow="Simple & rapide" title="Comment ça marche ?" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
+            {[
+              {
+                icon: <Package className="h-5 w-5 text-white" />,
+                title: 'Pour les expéditeurs',
+                steps: [
+                  'Créez votre bagage avec ses dimensions et poids',
+                  'Trouvez un trajet qui correspond à votre destination',
+                  'Réservez et payez en toute sécurité (escrow)',
+                  "Suivez votre colis jusqu'à la livraison",
+                ],
+                cta: { label: 'Rechercher un trajet', to: '/trips' },
+              },
+              {
+                icon: <Plane className="h-5 w-5 text-white" />,
+                title: 'Pour les voyageurs (GP)',
+                highlight: {
+                  title: '💰 Gains réels — exemple',
+                  items: [
+                    { val: '47 250', sub: 'F CFA / colis' },
+                    { val: '194 €',  sub: 'en escrow' },
+                    { val: '10 kg',  sub: 'à 4 500 F/kg' },
+                  ],
+                },
+                steps: [
+                  'Publiez votre trajet et fixez votre prix — vous gardez vos clients',
+                  'Acceptez les réservations qui vous conviennent',
+                  'Transportez les colis — paiement déjà sécurisé en escrow',
+                  'Recevez votre paiement garanti après livraison confirmée',
+                ],
+                cta: { label: 'Créer mon profil GP', to: '/register?role=traveler' },
+              },
+            ].map((col, colIdx) => {
+              const { ref, visible } = useReveal()
+              return (
+                <div
+                  key={colIdx}
+                  ref={ref}
+                  className="flex flex-col gap-6 bg-slate-50 rounded-[24px] p-8 border border-slate-100"
+                  style={{
+                    opacity:    visible ? 1 : 0,
+                    transform:  visible ? 'translateY(0)' : 'translateY(32px)',
+                    transition: `opacity 0.5s ease ${colIdx * 120}ms, transform 0.5s ease ${colIdx * 120}ms`,
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1B3A6B] shadow-sm">
+                      {col.icon}
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900">{col.title}</h3>
+                  </div>
 
-              {/* Earnings highlight */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-[14px] p-4">
-                <p className="text-sm font-bold text-emerald-800 mb-1">💰 Exemple de gains réels</p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-emerald-700">47 250</p>
-                    <p className="text-xs text-emerald-600">F CFA / colis</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-emerald-700">194 €</p>
-                    <p className="text-xs text-emerald-600">en escrow</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-emerald-700">10 kg</p>
-                    <p className="text-xs text-emerald-600">à 4 500 F/kg</p>
-                  </div>
-                </div>
-              </div>
+                  {col.highlight && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-[14px] p-4">
+                      <p className="text-sm font-bold text-emerald-800 mb-3">{col.highlight.title}</p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        {col.highlight.items.map(item => (
+                          <div key={item.val}>
+                            <p className="text-lg font-black text-emerald-700">{item.val}</p>
+                            <p className="text-xs text-emerald-600 font-medium">{item.sub}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              <div className="flex flex-col gap-4 pl-2">
-                <Step number={1} text="Publiez votre trajet et fixez votre prix au kilo — vous gardez vos clients" />
-                <Step number={2} text="Acceptez les réservations qui vous conviennent" />
-                <Step number={3} text="Transportez les colis — le paiement est déjà sécurisé en escrow" />
-                <Step number={4} text="Recevez votre paiement garanti après confirmation de livraison" />
-              </div>
-              <Link to="/register?role=traveler" className="self-start flex items-center gap-1.5 text-sm font-semibold text-[#1B3A6B] hover:underline">
-                Créer mon profil GP <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+                  <div className="flex flex-col gap-4">
+                    {col.steps.map((step, i) => (
+                      <Step key={i} number={i + 1} text={step} />
+                    ))}
+                  </div>
+
+                  <Link to={col.cta.to}
+                    className="self-start flex items-center gap-1.5 text-sm font-bold text-[#1B3A6B] hover:underline group">
+                    {col.cta.label}
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── Features ────────────────────────────────────────────────── */}
-      <section id="features" className="bg-gray-50 py-20">
+      {/* ── Features ─────────────────────────────────────────────── */}
+      <section id="features" className="bg-slate-50 py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <span className="inline-block bg-[#EBF4FF] text-[#1B3A6B] text-xs font-semibold px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Nos avantages</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Pourquoi choisir Safe Move ?</h2>
-          </div>
+          <SectionHeader
+            eyebrow="Nos avantages"
+            title="Pourquoi choisir Safe Move ?"
+            sub="La plateforme de confiance pour vos envois Africa ↔ Europe"
+          />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <FeatureCard icon={<Shield className="h-6 w-6" />} title="Sécurisé" description="KYC, paiement sécurisé avec système escrow 48h, et suivi complet de chaque transaction" />
-            <FeatureCard icon={<CheckCircle className="h-6 w-6" />} title="Fiable" description="Système de notation, gestion des litiges, et support client disponible" />
-            <FeatureCard icon={<DollarSign className="h-6 w-6" />} title="Économique" description="Tarifs compétitifs, paiement uniquement après livraison confirmée pour les voyageurs" />
+            <FeatureCard delay={0}
+              icon={<Shield className="h-6 w-6" />}
+              title="Sécurisé"
+              description="KYC obligatoire, paiement escrow 48h, suivi complet et protection contre les fraudes." />
+            <FeatureCard delay={80}
+              icon={<CheckCircle className="h-6 w-6" />}
+              title="Fiable"
+              description="Notation des voyageurs, gestion des litiges dédiée, et support client réactif." />
+            <FeatureCard delay={160}
+              icon={<DollarSign className="h-6 w-6" />}
+              title="Économique"
+              description="Tarifs compétitifs, paiement uniquement après livraison confirmée pour les voyageurs." />
           </div>
         </div>
       </section>
 
-      {/* ── Recherche preview ───────────────────────────────────────── */}
-      <section id="pricing" className="bg-white py-20">
+      {/* ── Trips preview ─────────────────────────────────────────── */}
+      <section id="trips" className="bg-white py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="max-w-2xl mx-auto text-center mb-10">
-            <span className="inline-block bg-[#EBF4FF] text-[#1B3A6B] text-xs font-semibold px-3 py-1 rounded-full mb-3 uppercase tracking-wide">Trajets disponibles</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Trouvez votre trajet</h2>
-            <p className="text-gray-500 text-sm">Des voyageurs partent chaque jour vers votre destination</p>
-          </div>
+          <SectionHeader
+            eyebrow="Trajets disponibles"
+            title="Trouvez votre trajet"
+            sub="Des voyageurs partent chaque jour vers votre destination"
+          />
 
-          <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-[24px] overflow-hidden shadow-md">
-            <div className="p-5 flex flex-col gap-4 bg-gray-50 border-b border-gray-100">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex items-center flex-1 border border-gray-200 rounded-[10px] px-4 bg-white min-h-[48px]">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-                  <CityInputInline value={departure} onChange={setDeparture} placeholder="Ville de départ" />
-                </div>
-                <div className="flex items-center flex-1 border border-gray-200 rounded-[10px] px-4 bg-white min-h-[48px]">
-                  <MapPin className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
-                  <CityInputInline value={destination} onChange={setDestination} placeholder="Destination" />
-                </div>
-                <div className="flex items-center gap-2 flex-1 border border-gray-200 rounded-[10px] px-4 bg-white min-h-[48px]">
-                  <Calendar className="h-4 w-4 text-gray-400 shrink-0" aria-hidden />
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                    aria-label="Date de départ" className="bg-transparent text-sm text-gray-700 outline-none w-full" />
-                </div>
+          {/* Search bar */}
+          <div className="max-w-3xl mx-auto mb-10">
+            <div
+              className="bg-white border border-slate-200 rounded-[20px] p-4 flex flex-col sm:flex-row gap-3"
+              style={{ boxShadow: '0 4px 24px rgba(15,23,42,0.08)' }}
+            >
+              <div className="flex items-center flex-1 border border-slate-200 rounded-[10px] px-4 bg-slate-50 min-h-[48px]">
+                <MapPin className="w-4 h-4 text-slate-400 mr-2 shrink-0" aria-hidden />
+                <CityInputInline value={departure} onChange={setDeparture} placeholder="Ville de départ" />
+              </div>
+              <div className="flex items-center flex-1 border border-slate-200 rounded-[10px] px-4 bg-slate-50 min-h-[48px]">
+                <MapPin className="w-4 h-4 text-slate-400 mr-2 shrink-0" aria-hidden />
+                <CityInputInline value={destination} onChange={setDestination} placeholder="Destination" />
               </div>
               <button
                 onClick={() => {
-                  const params = new URLSearchParams()
-                  if (departure)   params.set('departure',   departure)
-                  if (destination) params.set('destination', destination)
-                  if (date)        params.set('date',        date)
-                  navigate(`/trips?${params.toString()}`)
+                  const p = new URLSearchParams()
+                  if (departure)   p.set('departure',   departure)
+                  if (destination) p.set('destination', destination)
+                  if (date)        p.set('date',        date)
+                  navigate(`/trips?${p.toString()}`)
                 }}
-                className="w-full sm:w-auto self-center bg-[#1B3A6B] hover:bg-[#2B6CB0] text-white font-semibold px-10 py-3 rounded-full text-sm transition-colors min-h-[48px] flex items-center gap-2 justify-center"
+                className="sm:w-auto bg-[#1B3A6B] hover:bg-[#2351a0] text-white font-bold px-8 py-3 rounded-full text-sm transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md min-h-[48px]"
               >
                 <ArrowRight className="w-4 h-4" />
                 Rechercher
               </button>
             </div>
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {isLoading ? (
-                <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
-              ) : previewTrips.length === 0 ? (
-                <div className="col-span-3 text-center py-8 text-gray-500 text-sm">Aucun trajet disponible pour le moment.</div>
-              ) : (
-                previewTrips.map((trip) => <TripCardPreview key={trip.id} trip={trip} />)
-              )}
-            </div>
           </div>
 
-          <div className="text-center mt-6">
+          {/* Trip cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8 sm-stagger">
+            {isLoading
+              ? [1,2,3].map(i => <SkeletonCard key={i} />)
+              : preview.length === 0
+                ? <div className="col-span-3 text-center py-12 text-slate-400 text-sm">Aucun trajet disponible pour le moment.</div>
+                : preview.map(trip => <TripCardPreview key={trip.id} trip={trip} />)
+            }
+          </div>
+
+          <div className="text-center">
             <button onClick={() => navigate('/trips')}
-              className="px-6 py-3 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-semibold hover:bg-[#1B3A6B] hover:text-white transition-colors text-sm min-h-[48px]">
-              Voir tous les trajets →
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-[#1B3A6B] text-[#1B3A6B] font-bold hover:bg-[#1B3A6B] hover:text-white transition-all duration-200 text-sm group">
+              Voir tous les trajets
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────────── */}
-      <section className="py-20 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0F2544 0%, #1B3A6B 100%)' }}>
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}
-          aria-hidden />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Prêt à commencer ?</h2>
-          <p className="text-blue-100 text-base sm:text-lg max-w-xl">Rejoignez des milliers d'utilisateurs qui font confiance à Safe Move pour leurs envois internationaux.</p>
+      {/* ── Waitlist ──────────────────────────────────────────────── */}
+      <section className="bg-slate-50 py-20 border-t border-slate-100">
+        <div className="max-w-xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Soyez parmi les premiers informés</h2>
+            <p className="text-slate-500 text-sm">Laissez votre email — on vous contacte au lancement.</p>
+          </div>
+          <WaitlistForm />
+        </div>
+      </section>
+
+      {/* ── CTA finale ───────────────────────────────────────────── */}
+      <section
+        className="relative py-24 overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #050d1a 0%, #0f2544 50%, #1B3A6B 100%)' }}
+      >
+        <div className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+            backgroundSize: '32px 32px',
+          }} aria-hidden />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-7">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white max-w-2xl leading-tight">
+            Prêt à commencer ?
+          </h2>
+          <p className="text-blue-100/70 text-base sm:text-lg max-w-lg">
+            Rejoignez des milliers d'utilisateurs qui font confiance à Safe Move pour leurs envois internationaux.
+          </p>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Link to="/register"
-              className="bg-white hover:bg-[#EBF4FF] font-semibold px-8 py-4 rounded-full transition-colors text-sm text-[#1B3A6B] min-h-[52px] flex items-center gap-2 shadow-lg">
+              className="group flex items-center gap-2 bg-white hover:bg-blue-50 text-[#1B3A6B] font-black px-8 py-4 rounded-full transition-all duration-200 text-sm min-h-[52px]"
+              style={{ boxShadow: '0 4px 24px rgba(255,255,255,0.2)' }}>
               <Package className="w-4 h-4" />
               Envoyer un colis
             </Link>
             <Link to="/register?role=traveler"
-              className="border-2 border-white/40 text-white hover:bg-white/10 hover:border-white/60 font-semibold px-8 py-4 rounded-full transition-colors text-sm min-h-[52px] flex items-center gap-2">
+              className="flex items-center gap-2 border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 font-bold px-8 py-4 rounded-full transition-all duration-200 text-sm min-h-[52px] backdrop-blur-sm">
               <Plane className="w-4 h-4" />
               Proposer un trajet
             </Link>
@@ -542,21 +752,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer className="text-white" style={{ backgroundColor: '#0F2544' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10">
+      {/* ── Footer ───────────────────────────────────────────────── */}
+      <footer style={{ backgroundColor: '#050d1a' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/[0.07]">
           <Link to="/" aria-label="Accueil Safe Move">
-            <img src="/logo-blanc.png" alt="Safe Move" className="h-8" />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-8 opacity-60 hover:opacity-90 transition-opacity" />
           </Link>
-          <p className="text-sm text-white/50">© 2026 GP-Valise / Safe Move. Tous droits réservés.</p>
-          <div className="flex items-center gap-4 text-sm text-white/50">
-            <a href="#" className="hover:text-white transition-colors">Conditions</a>
-            <span className="text-white/20">·</span>
-            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
-            <span className="text-white/20">·</span>
-            <a href="https://wa.me/212600000000" className="hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-            <span className="text-white/20">·</span>
-            <a href="mailto:contact@safemove.tech" className="hover:text-white transition-colors">Contact</a>
+          <p className="text-sm text-white/30 font-medium">© 2026 GP-Valise / Safe Move</p>
+          <div className="flex items-center gap-5 text-sm text-white/30">
+            {[
+              { label: 'Conditions', href: '#' },
+              { label: 'Confidentialité', href: '#' },
+              { label: 'WhatsApp', href: 'https://wa.me/212600000000' },
+              { label: 'Contact', href: 'mailto:contact@safemove.tech' },
+            ].map(link => (
+              <a key={link.label} href={link.href}
+                className="hover:text-white transition-colors"
+                target={link.href.startsWith('http') ? '_blank' : undefined}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+                {link.label}
+              </a>
+            ))}
           </div>
         </div>
       </footer>
