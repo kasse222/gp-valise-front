@@ -62,13 +62,17 @@ export function SkeletonText({ className }: { className?: string }) {
   return <SkeletonBase className={cn('h-4 w-full', className)} />
 }
 
-export function SkeletonCard({ className }: { className?: string }) {
+export function SkeletonCard({
+  className,
+  style,
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
         'bg-white border border-slate-100 rounded-[16px] p-5 shadow-sm flex flex-col gap-4',
         className,
       )}
+      style={style}
       aria-hidden
     >
       <div className="flex items-center justify-between">
@@ -88,7 +92,11 @@ export function SkeletonList({ count = 3, className }: { count?: number; classNa
   return (
     <div className={cn('flex flex-col gap-4', className)} role="status" aria-label="Chargement…">
       {Array.from({ length: count }).map((_, i) => (
-        <SkeletonCard key={i} className="opacity-100" style={{ opacity: 1 - i * 0.15 } as React.CSSProperties} />
+        <SkeletonCard
+            key={i}
+            className="opacity-100"
+            style={{ opacity: 1 - i * 0.15 }}
+          />
       ))}
     </div>
   )
@@ -204,7 +212,6 @@ export function CountdownTimer({
 
   const isUrgent  = remaining < 600
   const isWarning = remaining < 3600
-  const pct       = Math.min((remaining / 3600) * 100, 100)
 
   return (
     <div

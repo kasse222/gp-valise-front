@@ -32,7 +32,7 @@ function validatePhone(phone: string): string | undefined {
 // ── Role selector card ────────────────────────────────────────────────────────
 
 function RoleCard({
-  value, selected, onChange, icon, title, description,
+   selected, onChange, icon, title, description,
 }: {
   value: number; selected: boolean; onChange: () => void
   icon: React.ReactNode; title: string; description: string

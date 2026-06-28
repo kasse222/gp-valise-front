@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { TrendingUp, Lock, Clock, CheckCircle, ArrowUpRight } from 'lucide-react'
+import { TrendingUp, Lock, Clock, CheckCircle} from 'lucide-react'
 import { useEarnings } from '@/hooks/useEarnings'
 import { formatAmount } from '@/lib/utils'
 import type { EarningsBucket } from '@/types'

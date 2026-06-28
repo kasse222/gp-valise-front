@@ -294,7 +294,7 @@ export default function LandingPage() {
   const [mounted,   setMounted]   = useState(false)
   const [departure, setDeparture] = useState('')
   const [destination, setDestination] = useState('')
-  const [date,      setDate]      = useState('')
+  const [date]      = useState('')
   const navigate    = useNavigate()
   const user        = useAuthStore((s) => s.user)
   const dashPath    = user ? (isSender(user.role) ? '/sender' : '/traveler') : null

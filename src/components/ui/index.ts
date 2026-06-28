@@ -7,6 +7,7 @@ export type { BookingStatusCode }                    from './Badge'
 export { WaitlistForm }                              from './WaitlistForm'
 export { CitySelect, CityInputInline, WORLD_CITIES } from './CitySelect'
 export { PickupLocationCard }                        from './PickupLocationCard'
+export { PageHero }                                  from './PageHero'   // ← AJOUTER
 
 // Extended atoms
 export {
@@ -18,4 +19,4 @@ export {
   CountdownTimer,
   EmptyState,
   ConfirmModal,
-}                                                    from './extended'
+} from './extended'

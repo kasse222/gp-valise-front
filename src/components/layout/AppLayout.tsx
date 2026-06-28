@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import client from '@/api/client'
 import toast from 'react-hot-toast'
-import { LogOut, User, Menu, X } from 'lucide-react'
+import { LogOut, Menu, X } from 'lucide-react'
 
 interface NavItem {
   label: string
