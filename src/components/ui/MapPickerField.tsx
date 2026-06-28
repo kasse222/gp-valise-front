@@ -1,9 +1,7 @@
 /**
  * MapPickerField — carte Leaflet avec geocoding Nominatim
- * - CitySelect → centre la carte automatiquement
- * - Adresse → geocode et centre
- * - Clic carte ou géolocalisation → pin exact
- * - Zone ~500m calculée automatiquement
+ * Fix : ville verrouillée en étape 2 — ville toujours éditable
+ * Fix : carte centrée sur la ville mais pas de marker automatique
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
@@ -13,11 +11,12 @@ import { CityInputInline } from '@/components/ui/CitySelect'
 interface Coords { lat: number; lng: number }
 
 interface MapPickerFieldProps {
-  onCoords:        (exact: Coords, approx: Coords) => void
-  onCityChange?:   (city: string) => void
+  onCoords:         (exact: Coords, approx: Coords) => void
+  onCityChange?:    (city: string) => void
   onAddressChange?: (address: string) => void
-  initialCity?:    string
-  initialCoords?:  Coords | null
+  initialCity?:     string
+  initialCoords?:   Coords | null
+  cityLocked?:      boolean   // ← NEW : désactivé par défaut
 }
 
 function randomOffset(): number {
@@ -30,7 +29,6 @@ function approxFrom(c: Coords): Coords {
   return { lat: c.lat + randomOffset(), lng: c.lng + randomOffset() }
 }
 
-// Geocoding via Nominatim (OpenStreetMap) — gratuit, pas de clé
 async function geocode(query: string): Promise<Coords | null> {
   try {
     const res = await fetch(
@@ -49,7 +47,8 @@ async function geocode(query: string): Promise<Coords | null> {
 type L = any
 
 export function MapPickerField({
-  onCoords, onCityChange, onAddressChange, initialCity = '', initialCoords,
+  onCoords, onCityChange, onAddressChange,
+  initialCity = '', initialCoords, cityLocked = false,
 }: MapPickerFieldProps) {
   const mapRef         = useRef<HTMLDivElement>(null)
   const leafletMap     = useRef<L>(null)
@@ -66,7 +65,7 @@ export function MapPickerField({
   const [mapVisible,      setMapVisible]      = useState(!!initialCity || !!initialCoords)
   const [error,           setError]           = useState<string | null>(null)
 
-  // Sync city depuis prop parent (ex: ville de départ choisie)
+  // Sync city depuis prop parent — mais NE verrouille pas le champ
   useEffect(() => {
     if (initialCity && initialCity !== city) {
       setCity(initialCity)
@@ -89,20 +88,16 @@ export function MapPickerField({
     document.head.appendChild(script)
   }, [])
 
-  // Quand la carte devient visible → initialiser ou invalider
   useEffect(() => {
     if (!mapVisible || !leafletReady || !mapRef.current) return
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Lf = (window as any).L
 
     if (leafletMap.current) {
-      // Déjà initialisée → juste invalider la taille
       setTimeout(() => leafletMap.current?.invalidateSize(), 100)
       return
     }
 
-    // Première initialisation
     const map = Lf.map(mapRef.current).setView([14.6937, -17.4441], 12)
     Lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors', maxZoom: 19,
@@ -144,14 +139,12 @@ export function MapPickerField({
     }).addTo(map).bindPopup("Zone visible par l'expéditeur avant paiement")
     setCoords(c)
     onCoords(c, approx)
-    // Si pas d'adresse saisie, utiliser les coordonnées comme référence
     if (!address) {
       onAddressChange?.(`${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onCoords])
 
-  // ── Geocode ville → centre carte ─────────────────────────────────────
   const geocodeAndCenter = useCallback(async (query: string, zoom = 13) => {
     if (!query.trim() || !leafletMap.current) return
     setGeocoding(true)
@@ -162,13 +155,11 @@ export function MapPickerField({
     }
   }, [])
 
-  // Ville change → geocode + centre (sans placer de marker)
   useEffect(() => {
     if (city) geocodeAndCenter(city, 13)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city])
 
-  // Adresse → autocomplete Nominatim (debounce 400ms)
   useEffect(() => {
     if (!address.trim() || address.length < 3) { setSuggestions([]); return }
     const timer = setTimeout(async () => {
@@ -203,6 +194,12 @@ export function MapPickerField({
     setCity(v)
     onCityChange?.(v)
     if (v.trim()) setMapVisible(true)
+    // Si on change de ville, on efface le marker précédent
+    if (v !== city) {
+      if (markerRef.current) { markerRef.current.remove(); markerRef.current = null }
+      if (approxRef.current) { approxRef.current.remove(); approxRef.current = null }
+      setCoords(null)
+    }
   }
 
   function handleGeolocate() {
@@ -228,12 +225,13 @@ export function MapPickerField({
     setSuggestions([])
     setShowSuggestions(false)
     onCoords({ lat: 0, lng: 0 }, { lat: 0, lng: 0 })
+    onAddressChange?.('')
   }
 
   return (
     <div className="flex flex-col gap-3">
 
-      {/* Ville avec datalist */}
+      {/* Ville — toujours éditable, jamais verrouillée */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-gray-600">
           Ville {geocoding && <span className="text-gray-400 ml-1">· Recherche…</span>}
@@ -245,12 +243,14 @@ export function MapPickerField({
             placeholder="Choisir une ville…"
           />
         </div>
+        {cityLocked && city && (
+          <p className="text-xs text-[#1B3A6B]/60">Prérempli depuis votre itinéraire — modifiable</p>
+        )}
       </div>
 
       {/* Adresse + carte — visibles seulement après choix ville */}
       {mapVisible ? (
         <>
-          {/* Adresse → autocomplete Nominatim */}
           <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-medium text-gray-600">
               Adresse précise
@@ -289,7 +289,6 @@ export function MapPickerField({
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-2">
             <button type="button" onClick={handleGeolocate} disabled={loading || !leafletReady}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1B3A6B] text-white text-sm font-medium hover:bg-[#2B6CB0] disabled:opacity-50 transition-colors min-h-[44px]">
@@ -305,7 +304,6 @@ export function MapPickerField({
             )}
           </div>
 
-          {/* Carte */}
           <div className="relative rounded-[14px] overflow-hidden border border-gray-200">
             {(!leafletReady || geocoding) && (
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 text-xs text-gray-600 px-3 py-1.5 rounded-full shadow">
@@ -315,7 +313,6 @@ export function MapPickerField({
             <div ref={mapRef} style={{ height: '260px', width: '100%' }} />
           </div>
 
-          {/* Status */}
           {coords ? (
             <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-[10px]">
               <MapPin className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden />

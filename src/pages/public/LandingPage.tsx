@@ -216,7 +216,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" aria-label="Navigation principale">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <Link to="/" className="shrink-0" aria-label="Accueil Safe Move">
-            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-14 object-contain" />
+            <img src="/logo-icon.png" alt="" className="w-9 h-9 object-contain" aria-hidden /><img src="/logo-nav-hori.png" alt="Safe Move" className="h-10 object-contain" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -301,7 +301,7 @@ export default function LandingPage() {
 
               {/* Sous-titre */}
               <p className="anim-fade-up delay-300 text-lg text-blue-100/80 leading-relaxed max-w-lg">
-                Connectez-vous avec des voyageurs vérifiés pour expédier vos colis partout dans le monde. Paiement sécurisé, suivi en temps réel, litige géré.
+                Vous voyagez entre Dakar, Casablanca, Paris ou Abidjan ? Transportez des colis en toute sécurité et gagnez de l'argent sur chaque trajet. Paiement garanti après livraison.
               </p>
 
               {/* Badges pays */}
@@ -322,7 +322,7 @@ export default function LandingPage() {
                 </Link>
                 <Link to="/register?role=traveler"
                   className="flex items-center gap-2 border-2 border-white/40 text-white hover:bg-white/10 hover:border-white/60 font-semibold px-8 py-4 rounded-full transition-all duration-200 text-sm min-h-[52px]">
-                  Devenir transporteur
+                  💰 Gagner sur mes trajets
                 </Link>
               </div>
 
@@ -340,7 +340,7 @@ export default function LandingPage() {
                 <span className="text-white/20">·</span>
                 <div className="flex items-center gap-2 text-white/70 text-sm">
                   <TrendingUp className="w-4 h-4 text-amber-400" />
-                  <span>Litiges gérés</span>
+                  <span>Gains garantis</span>
                 </div>
               </div>
             </div>
@@ -407,16 +407,36 @@ export default function LandingPage() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1B3A6B]">
                   <Plane className="h-5 w-5 text-white" aria-hidden />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Pour les voyageurs</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Pour les voyageurs (GP)</h3>
               </div>
+
+              {/* Earnings highlight */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-[14px] p-4">
+                <p className="text-sm font-bold text-emerald-800 mb-1">💰 Exemple de gains réels</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-emerald-700">47 250</p>
+                    <p className="text-xs text-emerald-600">F CFA / colis</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-emerald-700">194 €</p>
+                    <p className="text-xs text-emerald-600">en escrow</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-emerald-700">10 kg</p>
+                    <p className="text-xs text-emerald-600">à 4 500 F/kg</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-col gap-4 pl-2">
-                <Step number={1} text="Publiez votre trajet avec la capacité disponible" />
+                <Step number={1} text="Publiez votre trajet et fixez votre prix au kilo — vous gardez vos clients" />
                 <Step number={2} text="Acceptez les réservations qui vous conviennent" />
-                <Step number={3} text="Transportez les bagages en toute sécurité" />
-                <Step number={4} text="Recevez votre paiement après confirmation de livraison" />
+                <Step number={3} text="Transportez les colis — le paiement est déjà sécurisé en escrow" />
+                <Step number={4} text="Recevez votre paiement garanti après confirmation de livraison" />
               </div>
               <Link to="/register?role=traveler" className="self-start flex items-center gap-1.5 text-sm font-semibold text-[#1B3A6B] hover:underline">
-                Devenir transporteur <ArrowRight className="w-3.5 h-3.5" />
+                Créer mon profil GP <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>

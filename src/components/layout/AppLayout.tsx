@@ -5,7 +5,6 @@ import client from '@/api/client'
 import toast from 'react-hot-toast'
 import { LogOut, User, Menu, X } from 'lucide-react'
 
-
 interface NavItem {
   label: string
   path:  string
@@ -35,10 +34,11 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
     <>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <Link to="/" aria-label="Accueil Safe Move">
-          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-14" />
+        <Link to="/" aria-label="Accueil Safe Move" className="flex items-center gap-3">
+          <img src="/logo-icon.png" alt="" className="w-9 h-9 object-contain" aria-hidden />
+          <img src="/logo-nav-hori.png" alt="Safe Move" className="h-8 object-contain" />
         </Link>
-        <p className="text-xs text-gray-500 mt-2 truncate">
+        <p className="text-xs text-gray-500 mt-2 truncate pl-0.5">
           {user?.first_name} {user?.last_name}
         </p>
       </div>
@@ -88,9 +88,9 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
 
-      {/* Sidebar desktop */}
+      {/* Sidebar desktop — w-64 sur md, w-72 sur lg, w-80 sur xl */}
       <aside
-        className="hidden md:flex w-64 bg-white border-r border-gray-100 flex-col fixed h-screen z-30"
+        className="hidden md:flex w-64 lg:w-72 xl:w-80 bg-white border-r border-gray-100 flex-col fixed h-screen z-30 shrink-0"
         aria-label="Barre latérale"
       >
         <SidebarContent />
@@ -108,7 +108,7 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
       {/* Mobile drawer */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-100
+          fixed top-0 left-0 z-50 h-screen w-72 bg-white border-r border-gray-100
           flex flex-col transform transition-transform duration-200 md:hidden
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -125,8 +125,8 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
         <SidebarContent />
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 md:ml-64 overflow-auto pb-20 md:pb-0">
+      {/* Main — s'adapte à la largeur de la sidebar */}
+      <main className="flex-1 md:ml-64 lg:ml-72 xl:ml-80 min-w-0 overflow-auto pb-20 md:pb-0">
         {/* Mobile topbar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-30">
           <button
@@ -136,12 +136,16 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
           >
             <Menu size={22} className="text-gray-600" />
           </button>
-          <Link to="/">
-            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-12" />
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo-icon.png" alt="" className="w-7 h-7 object-contain" aria-hidden />
+            <img src="/logo-nav-hori.png" alt="Safe Move" className="h-8 object-contain" />
           </Link>
         </div>
 
-        {children}
+        {/* Contenu — padding généreux sur grand écran, pas de max-w global */}
+        <div className="w-full">
+          {children}
+        </div>
       </main>
 
       {/* Mobile bottom nav */}
@@ -167,8 +171,6 @@ export default function AppLayout({ children, navItems }: AppLayoutProps) {
             </Link>
           )
         })}
-
-        {/* Bouton déconnexion dans la bottom nav mobile */}
         <button
           onClick={handleLogout}
           aria-label="Déconnexion"

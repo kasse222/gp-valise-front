@@ -12,6 +12,7 @@ const STATUS_FILTERS = ['pending', 'active', 'completed', 'cancelled'] as const
 type TripStatus = (typeof STATUS_FILTERS)[number]
 
 function TripRow({ trip }: { trip: Trip }) {
+  const tripCurrency = trip.currency ?? 'XOF'
   const disponibleKg = (trip.grams_disponible / 1000).toFixed(1) + ' kg'
   return (
     <Link to={`/traveler/trips/${trip.id}`}
@@ -23,7 +24,7 @@ function TripRow({ trip }: { trip: Trip }) {
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{trip.departure} → {trip.destination}</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {trip.date ? `${formatDate(trip.date)} · ` : ''}{disponibleKg} dispo · {formatAmount(trip.price_per_kg, 'EUR')}/kg
+            {trip.date ? `${formatDate(trip.date)} · ` : ''}{disponibleKg} dispo · {formatAmount(trip.price_per_kg, tripCurrency)}/kg
           </p>
         </div>
       </div>
@@ -57,7 +58,7 @@ export default function TripsPage() {
   const usedStatuses = [...new Set(trips.map((t) => t.status.code))].filter((s): s is TripStatus => STATUS_FILTERS.includes(s as TripStatus))
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <PageHero
         title="Mes trajets"
         subtitle={trips.length > 0 ? `${trips.length} trajet${trips.length > 1 ? 's' : ''} créé${trips.length > 1 ? 's' : ''}` : 'Aucun trajet pour le moment'}
