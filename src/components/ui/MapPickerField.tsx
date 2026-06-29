@@ -74,6 +74,14 @@ export function MapPickerField({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCity])
 
+  // Geocoder au mount si initialCity fourni (après Leaflet chargé)
+  useEffect(() => {
+    if (initialCity && leafletReady && leafletMap.current) {
+      geocodeAndCenter(initialCity, 13)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leafletReady])
+
   // ── Charger Leaflet ──────────────────────────────────────────────────
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +114,11 @@ export function MapPickerField({
       placeMarker({ lat: e.latlng.lat, lng: e.latlng.lng })
     })
     leafletMap.current = map
+
+    // Centrer sur la ville initiale dès que la carte est créée
+    if (initialCity && !initialCoords) {
+      geocodeAndCenter(initialCity, 13)
+    }
 
     if (initialCoords) {
       placeMarker(initialCoords)
