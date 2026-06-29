@@ -175,7 +175,7 @@ function LogoCube3D() {
           x="0" y="0"
           width="960" height="540"
           preserveAspectRatio="xMidYMid slice"
-          opacity="0.08"
+          opacity="0.18"
           style={{ mixBlendMode: 'screen' }}
         />
 
@@ -284,14 +284,14 @@ function LogoCube3D() {
           )
         })}
 
-        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~700,340) ── */}
+        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~780,330) ── */}
         {[
-          { rx: 155, ry: 52,  rot: -20, dur: '28s',  dir: 1,   op: 0.28 },
-          { rx: 125, ry: 40,  rot:  15, dur: '20s',  dir: -1,  op: 0.35 },
-          { rx:  95, ry: 30,  rot: -35, dur: '14s',  dir: 1,   op: 0.45 },
-          { rx: 185, ry: 62,  rot:   5, dur: '38s',  dir: -1,  op: 0.15 },
+          { rx: 165, ry: 55,  rot: -20, dur: '28s',  dir: 1,   op: 0.28 },
+          { rx: 132, ry: 42,  rot:  15, dur: '20s',  dir: -1,  op: 0.35 },
+          { rx: 100, ry: 32,  rot: -35, dur: '14s',  dir: 1,   op: 0.45 },
+          { rx: 198, ry: 65,  rot:   5, dur: '38s',  dir: -1,  op: 0.15 },
         ].map((ring, i) => (
-          <g key={i} transform="translate(700,340)">
+          <g key={i} transform="translate(778,330)">
             <g style={{
               animation: `sm-spin-slow ${ring.dur} linear infinite ${ring.dir < 0 ? 'reverse' : ''}`,
               transformOrigin: '0 0',
@@ -323,15 +323,15 @@ function LogoCube3D() {
         ))}
 
         {/* ── Couche 5 : Halo radial derrière le logo ── */}
-        <ellipse cx="700" cy="340" rx="140" ry="120"
-          fill="#1d4ed8" opacity="0.18" filter="url(#logo-glow)"/>
-        <ellipse cx="700" cy="360" rx="100" ry="28"
-          fill="#3b82f6" opacity="0.22" filter="url(#logo-glow)"/>
+        <ellipse cx="778" cy="330" rx="160" ry="135"
+          fill="#1d4ed8" opacity="0.20" filter="url(#logo-glow)"/>
+        <ellipse cx="778" cy="350" rx="110" ry="30"
+          fill="#3b82f6" opacity="0.25" filter="url(#logo-glow)"/>
 
         {/* ── Couche 6 : Ombre/reflet sous le logo ── */}
-        <ellipse cx="700" cy="430" rx="80" ry="14"
-          fill="#3b82f6" opacity="0.18" filter="url(#hub-glow-lg)">
-          <animate attributeName="opacity" values="0.18;0.28;0.18" dur="4s" repeatCount="indefinite"/>
+        <ellipse cx="778" cy="430" rx="90" ry="14"
+          fill="#3b82f6" opacity="0.20" filter="url(#hub-glow-lg)">
+          <animate attributeName="opacity" values="0.20;0.32;0.20" dur="4s" repeatCount="indefinite"/>
         </ellipse>
       </svg>
 
@@ -339,36 +339,34 @@ function LogoCube3D() {
       <div
         style={{
           position: 'absolute',
-          // Centre le logo dans la moitié droite de la section
-          right: '12%',
-          top:   '50%',
-          transform: 'translateY(-50%)',
+          right:    '2%',
+          top:      '50%',
+          transform:'translateY(-52%)',
           perspective: '800px',
-          zIndex: 20,
+          zIndex:   20,
         }}
       >
         <div
           ref={cubeRef}
           style={{
-            transition:      'transform 0.25s ease',
-            animation:       'sm-float 4s ease-in-out infinite',
-            transformStyle:  'preserve-3d',
+            transition:     'transform 0.25s ease',
+            animation:      'sm-float 4s ease-in-out infinite',
+            transformStyle: 'preserve-3d',
           }}
         >
           <img
             src="/logo-icon-3D.png"
             alt="SafeMove"
             style={{
-              width:        300,
-              height:       300,
+              width:        360,
+              height:       360,
               objectFit:    'contain',
               display:      'block',
-              // screen blend : fond blanc → transparent, cube bleu → lumineux
               mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
               filter: [
-                'drop-shadow(0 0 24px rgba(59,130,246,0.9))',
-                'drop-shadow(0 0 48px rgba(59,130,246,0.5))',
-                'drop-shadow(0 0 80px rgba(59,130,246,0.2))',
+                'drop-shadow(0 0 28px rgba(59,130,246,0.95))',
+                'drop-shadow(0 0 56px rgba(59,130,246,0.55))',
+                'drop-shadow(0 0 90px rgba(59,130,246,0.25))',
                 'brightness(1.1)',
                 'saturate(1.2)',
               ].join(' '),
@@ -379,11 +377,12 @@ function LogoCube3D() {
 
       {/* ── Petites particules flottantes autour ── */}
       {[
-        { top: '15%', right: '25%', s: 3,   delay: '0s',   dur: '3.2s' },
-        { top: '12%', right: '12%', s: 2,   delay: '1s',   dur: '2.8s' },
-        { top: '45%', right: '4%',  s: 3.5, delay: '0.5s', dur: '4s'   },
-        { top: '72%', right: '18%', s: 2.5, delay: '1.5s', dur: '3.5s' },
-        { top: '78%', right: '34%', s: 2,   delay: '0.8s', dur: '2.5s' },
+        { top: '14%', right: '28%', s: 3,   delay: '0s',   dur: '3.2s' },
+        { top: '10%', right: '8%',  s: 2,   delay: '1s',   dur: '2.8s' },
+        { top: '42%', right: '1%',  s: 3.5, delay: '0.5s', dur: '4s'   },
+        { top: '70%', right: '5%',  s: 2.5, delay: '1.5s', dur: '3.5s' },
+        { top: '75%', right: '26%', s: 2,   delay: '0.8s', dur: '2.5s' },
+        { top: '30%', right: '32%', s: 2,   delay: '1.2s', dur: '3.8s' },
       ].map((p, i) => (
         <div
           key={i}
