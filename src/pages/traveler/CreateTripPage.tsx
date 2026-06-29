@@ -14,7 +14,7 @@ import {
   ArrowRight, AlertCircle, Calendar,
 } from 'lucide-react'
 
-import { Button, Input } from '@/components/ui'
+import { Button, Card, Input } from '@/components/ui'
 import { CitySelect } from '@/components/ui/CitySelect'
 import { CountrySelect } from '@/components/ui/CountrySelect'
 import { MapPickerField } from '@/components/ui/MapPickerField'
@@ -186,7 +186,7 @@ export default function CreateTripPage() {
   const [destinationCountry, setDestinationCountry] = useState('')
   const [destinationCity,   setDestinationCity]    = useState('')
   const [date,              setDate]               = useState(nowLocal())
-  const [isRoundTrip,       setIsRoundTrip]        = useState(false)
+  const [typeTrip,          setTypeTrip]           = useState<'standard' | 'express' | 'sur_devis'>('standard')
   const [flightNumber,      setFlightNumber]       = useState('')
 
   // Step 2 — Capacité
@@ -261,7 +261,7 @@ export default function CreateTripPage() {
       capacity:     Math.round(capacityKg * 1000),
       price_per_kg: pricePerKgForBackend,
       currency:     currency,
-      type_trip:    isRoundTrip ? 'round_trip' : 'one_way',
+      type_trip:    typeTrip,
       // Tarifs spéciaux par catégorie
       ...(Object.keys(categoryFees).length > 0 ? {
         category_fees: Object.entries(categoryFees)
@@ -368,25 +368,33 @@ export default function CreateTripPage() {
                       onChange={e => setFlightNumber(e.target.value)}
                       placeholder="Ex : AT 702" helper="Optionnel — améliore la confiance des expéditeurs" />
 
-                    {/* Round trip toggle */}
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-[12px] border border-slate-100">
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Trajet aller-retour</p>
-                        <p className="text-xs text-slate-400 mt-0.5">Vous prévoyez un retour ?</p>
+                    {/* Type de trajet */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-bold text-slate-700">Type de trajet</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: 'standard',  label: 'Standard',   sub: 'Trajet classique',    icon: '✈️' },
+                          { value: 'express',   label: 'Express',    sub: 'Livraison prioritaire', icon: '⚡' },
+                          { value: 'sur_devis', label: 'Sur devis',  sub: 'Tarif personnalisé',   icon: '💼' },
+                        ] as const).map(t => (
+                          <button
+                            key={t.value}
+                            type="button"
+                            onClick={() => setTypeTrip(t.value)}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-[12px] border-2 text-center transition-all duration-150 ${
+                              typeTrip === t.value
+                                ? 'bg-[#EBF4FF] border-[#1B3A6B] shadow-sm'
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <span className="text-xl">{t.icon}</span>
+                            <span className={`text-xs font-bold ${typeTrip === t.value ? 'text-[#1B3A6B]' : 'text-slate-700'}`}>
+                              {t.label}
+                            </span>
+                            <span className="text-[10px] text-slate-400">{t.sub}</span>
+                          </button>
+                        ))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsRoundTrip(v => !v)}
-                        className={`relative w-12 h-6 rounded-full transition-all duration-200 ${
-                          isRoundTrip ? 'bg-[#1B3A6B]' : 'bg-slate-200'
-                        }`}
-                        aria-checked={isRoundTrip}
-                        role="switch"
-                      >
-                        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${
-                          isRoundTrip ? 'left-7' : 'left-1'
-                        }`} />
-                      </button>
                     </div>
                   </div>
                 )}
@@ -557,6 +565,7 @@ export default function CreateTripPage() {
                         <h3 className="text-sm font-bold text-slate-800">Où récupérer le colis ?</h3>
                       </div>
                       <MapPickerField
+                        key={`pickup-${pickupCity}`}
                         initialCity={pickupCity}
                         initialCoords={null}
                         onCityChange={setPickupCity}
@@ -583,6 +592,7 @@ export default function CreateTripPage() {
                         <h3 className="text-sm font-bold text-slate-800">Où remettre le colis ?</h3>
                       </div>
                       <MapPickerField
+                        key={`delivery-${deliveryCity}`}
                         initialCity={deliveryCity}
                         initialCoords={null}
                         onCityChange={setDeliveryCity}
