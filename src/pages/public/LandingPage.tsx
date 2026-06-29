@@ -356,20 +356,21 @@ function LogoCube3D() {
           }}
         >
           <img
-            src="/logo-icon.png"
+            src="/logo-icon-3D.png"
             alt="SafeMove"
             style={{
-              width:        260,
-              height:       260,
+              width:        300,
+              height:       300,
               objectFit:    'contain',
               display:      'block',
-              // screen blend supprime le fond blanc sur fond sombre
+              // screen blend : fond blanc → transparent, cube bleu → lumineux
               mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
               filter: [
-                'drop-shadow(0 0 30px rgba(59,130,246,1))',
-                'drop-shadow(0 0 60px rgba(59,130,246,0.6))',
-                'drop-shadow(0 0 90px rgba(59,130,246,0.3))',
-                'brightness(1.2)',
+                'drop-shadow(0 0 24px rgba(59,130,246,0.9))',
+                'drop-shadow(0 0 48px rgba(59,130,246,0.5))',
+                'drop-shadow(0 0 80px rgba(59,130,246,0.2))',
+                'brightness(1.1)',
+                'saturate(1.2)',
               ].join(' '),
             }}
           />
