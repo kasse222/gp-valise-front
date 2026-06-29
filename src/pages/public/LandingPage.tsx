@@ -273,7 +273,7 @@ function LogoCube3D() {
         style={{
           position:  'absolute',
           right:     '0%',
-          top:       '45%',
+          top:       '38%',
           transform: 'translateY(-50%)',
           zIndex:    20,
           animation: 'sm-float 4s ease-in-out infinite',
