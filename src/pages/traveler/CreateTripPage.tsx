@@ -14,7 +14,7 @@ import {
   ArrowRight, AlertCircle, Calendar,
 } from 'lucide-react'
 
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { CitySelect } from '@/components/ui/CitySelect'
 import { CountrySelect } from '@/components/ui/CountrySelect'
 import { MapPickerField } from '@/components/ui/MapPickerField'
