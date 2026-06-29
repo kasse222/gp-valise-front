@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getTrips } from '@/api/trips'
@@ -50,121 +50,241 @@ function LiveCounter() {
   )
 }
 
-// ── Hero logo — logo-icon.png réel + effets glow CSS ────────────────────────
+// ── Hero Premium — toutes les couches ───────────────────────────────────────
+// Couches : grille tech → glow radial → anneaux SVG → particules → cube logo
+// + parallaxe souris + flottement
 
 function LogoCube3D() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const cubeRef      = useRef<HTMLDivElement>(null)
+
+  // Parallaxe souris — inclinaison légère du cube
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current || !cubeRef.current) return
+    const rect    = containerRef.current.getBoundingClientRect()
+    const cx      = rect.left + rect.width  / 2
+    const cy      = rect.top  + rect.height / 2
+    const dx      = (e.clientX - cx) / (rect.width  / 2)
+    const dy      = (e.clientY - cy) / (rect.height / 2)
+    const rotX    = -dy * 10
+    const rotY    =  dx * 10
+    cubeRef.current.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    if (!cubeRef.current) return
+    cubeRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)'
+  }, [])
+
+  const [show, setShow] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setShow(true), 300); return () => clearTimeout(t) }, [])
+
   return (
     <div
-      className="relative flex items-center justify-center"
-      style={{ width: 460, height: 460 }}
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="relative hidden lg:flex items-center justify-center"
+      style={{
+        width: 480, height: 480,
+        opacity: show ? 1 : 0,
+        transform: show ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.9s ease, transform 0.9s ease',
+      }}
       role="img"
-      aria-label="Logo SafeMove"
+      aria-label="Logo SafeMove animé"
     >
-      {/* Anneau néon bas — effet plasma */}
+      {/* ── Couche 1 : Carte du monde SVG très discrète ── */}
+      <svg
+        viewBox="0 0 480 480"
+        width="480" height="480"
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+        style={{ opacity: 0.07 }}
+      >
+        {/* Grille tech */}
+        <defs>
+          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(96,165,250,1)" strokeWidth="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="480" height="480" fill="url(#grid)" />
+        {/* Points de nœuds tech */}
+        {[
+          [80,80],[160,60],[240,90],[320,70],[400,100],
+          [60,180],[140,160],[220,200],[300,170],[420,190],
+          [90,280],[170,260],[250,290],[350,265],[440,280],
+          [70,380],[150,360],[240,380],[330,370],[410,360],
+        ].map(([x,y], i) => (
+          <circle key={i} cx={x} cy={y} r="1.5" fill="#60a5fa" opacity="0.8"/>
+        ))}
+        {/* Lignes de connexion */}
+        {[
+          '80,80 160,60', '160,60 240,90', '240,90 320,70', '320,70 400,100',
+          '60,180 140,160', '140,160 220,200', '220,200 300,170',
+          '80,80 60,180', '160,60 140,160', '240,90 220,200', '320,70 300,170',
+          '90,280 170,260', '170,260 250,290', '250,290 350,265',
+          '60,180 90,280', '140,160 170,260', '220,200 250,290',
+          '70,380 150,360', '150,360 240,380', '240,380 330,370',
+          '90,280 70,380', '170,260 150,360', '250,290 240,380',
+        ].map((pts, i) => (
+          <line key={i}
+            x1={pts.split(' ')[0].split(',')[0]} y1={pts.split(' ')[0].split(',')[1]}
+            x2={pts.split(' ')[1].split(',')[0]} y2={pts.split(' ')[1].split(',')[1]}
+            stroke="#3b82f6" strokeWidth="0.4" opacity="0.6"
+          />
+        ))}
+      </svg>
+
+      {/* ── Couche 2 : Halo radial derrière le cube ── */}
       <div
-        className="absolute"
+        className="absolute pointer-events-none"
+        aria-hidden="true"
         style={{
-          bottom: 32,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 340,
-          height: 60,
-          borderRadius: '50%',
-          background: 'transparent',
-          boxShadow: '0 0 40px 12px rgba(59,130,246,0.55), 0 0 80px 24px rgba(59,130,246,0.25)',
-          animation: 'sm-pulse-glow 2.5s ease-in-out infinite',
+          inset: 0,
+          background: [
+            'radial-gradient(ellipse 60% 55% at 50% 50%, rgba(59,130,246,0.22) 0%, transparent 70%)',
+          ].join(','),
         }}
-        aria-hidden
       />
 
-      {/* Glow blob derrière le cube */}
-      <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        aria-hidden
+      {/* ── Couche 3 : Anneaux SVG lumineux ── */}
+      <svg
+        viewBox="0 0 480 480"
+        width="480" height="480"
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
       >
-        <div style={{
-          width: 300,
-          height: 300,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(59,130,246,0.28) 0%, rgba(27,58,107,0.18) 50%, transparent 75%)',
-          filter: 'blur(32px)',
-        }} />
-      </div>
+        <defs>
+          <filter id="ring-glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="ring-glow-lg">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
 
-      {/* Anneaux orbitaux rotatifs */}
-      <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        aria-hidden
-      >
-        {/* Grand anneau */}
-        <div style={{
-          position: 'absolute',
-          width: 400,
-          height: 400,
-          borderRadius: '50%',
-          border: '1px solid rgba(59,130,246,0.18)',
-          animation: 'sm-spin-slow 18s linear infinite',
-        }} />
-        {/* Anneau moyen */}
-        <div style={{
-          position: 'absolute',
-          width: 340,
-          height: 340,
-          borderRadius: '50%',
-          border: '0.5px solid rgba(96,165,250,0.12)',
-          animation: 'sm-spin-slow 12s linear infinite reverse',
-        }} />
-        {/* Particules orbitales */}
-        {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+        {/* Anneau externe — tourne lentement */}
+        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 25s linear infinite' }}>
+          <ellipse cx="240" cy="240" rx="210" ry="70"
+            fill="none" stroke="#3b82f6" strokeWidth="1"
+            opacity="0.3" filter="url(#ring-glow)"
+            transform="rotate(-20, 240, 240)"
+          />
+        </g>
+
+        {/* Anneau moyen — sens inverse */}
+        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 18s linear infinite reverse' }}>
+          <ellipse cx="240" cy="240" rx="175" ry="55"
+            fill="none" stroke="#60a5fa" strokeWidth="1.5"
+            opacity="0.4" filter="url(#ring-glow)"
+            transform="rotate(15, 240, 240)"
+          />
+          {/* Point lumineux sur l'anneau moyen */}
+          <circle cx="415" cy="240" r="4" fill="#60a5fa" opacity="0.9" filter="url(#ring-glow)"/>
+        </g>
+
+        {/* Anneau intérieur — luisant */}
+        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 12s linear infinite' }}>
+          <ellipse cx="240" cy="240" rx="140" ry="44"
+            fill="none" stroke="#93c5fd" strokeWidth="2"
+            opacity="0.5" filter="url(#ring-glow-lg)"
+            transform="rotate(-30, 240, 240)"
+          />
+          <circle cx="100" cy="240" r="5" fill="#93c5fd" opacity="0.95" filter="url(#ring-glow-lg)"/>
+        </g>
+
+        {/* Anneau bas — plasma néon */}
+        <g style={{ transformOrigin: '240px 280px' }}>
+          <ellipse cx="240" cy="370" rx="120" ry="22"
+            fill="none" stroke="#3b82f6" strokeWidth="2"
+            opacity="0.5" filter="url(#ring-glow-lg)"
+            style={{ animation: 'sm-pulse-glow 2.5s ease-in-out infinite' }}
+          />
+        </g>
+      </svg>
+
+      {/* ── Couche 4 : Particules orbitales animées ── */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        {[
+          { top: '8%',  left: '48%', size: 4,   delay: '0s',    dur: '3s',   color: '#60a5fa' },
+          { top: '20%', left: '88%', size: 3,   delay: '0.5s',  dur: '2.5s', color: '#93c5fd' },
+          { top: '75%', left: '90%', size: 3.5, delay: '1s',    dur: '4s',   color: '#3b82f6' },
+          { top: '88%', left: '48%', size: 4,   delay: '1.5s',  dur: '3.5s', color: '#60a5fa' },
+          { top: '75%', left: '8%',  size: 3,   delay: '0.8s',  dur: '2.8s', color: '#93c5fd' },
+          { top: '20%', left: '10%', size: 3.5, delay: '0.3s',  dur: '3.2s', color: '#3b82f6' },
+          { top: '50%', left: '92%', size: 2.5, delay: '1.2s',  dur: '2.2s', color: '#bfdbfe' },
+          { top: '42%', left: '5%',  size: 2.5, delay: '0.6s',  dur: '3.8s', color: '#bfdbfe' },
+        ].map((p, i) => (
           <div
             key={i}
             style={{
               position: 'absolute',
-              width: i % 2 === 0 ? 5 : 3.5,
-              height: i % 2 === 0 ? 5 : 3.5,
+              top: p.top, left: p.left,
+              width:  p.size,
+              height: p.size,
               borderRadius: '50%',
-              background: i % 3 === 0 ? '#3b82f6' : '#60a5fa',
-              opacity: 0.7 - i * 0.05,
-              transform: `rotate(${deg}deg) translateX(196px)`,
-              boxShadow: '0 0 6px 2px rgba(59,130,246,0.6)',
+              background: p.color,
+              boxShadow: `0 0 ${p.size * 3}px ${p.size}px ${p.color}80`,
+              animation: `sm-float ${p.dur} ease-in-out ${p.delay} infinite`,
             }}
           />
         ))}
       </div>
 
-      {/* Le vrai logo — logo-icon.png */}
-      <img
-        src="/logo-icon.png"
-        alt="SafeMove logo"
+      {/* ── Couche 5 : Le cube logo avec perspective 3D ── */}
+      <div
         style={{
-          width: 280,
-          height: 280,
-          objectFit: 'contain',
           position: 'relative',
           zIndex: 10,
-          animation: 'sm-float 4s ease-in-out infinite',
-          filter: [
-            'drop-shadow(0 0 24px rgba(59,130,246,0.6))',
-            'drop-shadow(0 0 48px rgba(59,130,246,0.3))',
-            'drop-shadow(0 24px 40px rgba(0,0,0,0.5))',
-          ].join(' '),
+          perspective: '800px',
+          perspectiveOrigin: '50% 50%',
         }}
-      />
+      >
+        <div
+          ref={cubeRef}
+          style={{
+            transition: 'transform 0.3s ease',
+            animation: 'sm-float 4s ease-in-out infinite',
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          <img
+            src="/logo-icon.png"
+            alt="SafeMove"
+            style={{
+              width: 240,
+              height: 240,
+              objectFit: 'contain',
+              display: 'block',
+              filter: [
+                'drop-shadow(0 0 20px rgba(59,130,246,0.7))',
+                'drop-shadow(0 0 40px rgba(59,130,246,0.4))',
+                'drop-shadow(0 0 60px rgba(59,130,246,0.2))',
+                'drop-shadow(0 20px 30px rgba(0,0,0,0.6))',
+              ].join(' '),
+            }}
+          />
+        </div>
+      </div>
 
-      {/* Reflet/spéculaire en bas du cube */}
+      {/* ── Ombre douce sous le cube ── */}
       <div
-        className="absolute"
+        className="absolute pointer-events-none"
+        aria-hidden="true"
         style={{
-          bottom: 20,
+          bottom: 60,
           left: '50%',
           transform: 'translateX(-50%)',
-          width: 200,
-          height: 30,
+          width: 180,
+          height: 24,
           borderRadius: '50%',
-          background: 'rgba(59,130,246,0.15)',
-          filter: 'blur(12px)',
+          background: 'rgba(59,130,246,0.18)',
+          filter: 'blur(14px)',
+          animation: 'sm-float 4s ease-in-out infinite',
         }}
-        aria-hidden
       />
     </div>
   )
@@ -517,11 +637,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right — 3D Logo */}
-            <div className="hidden lg:flex items-center justify-center"
-              style={{ opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(20px)', transition: 'opacity 0.9s ease 0.3s, transform 0.9s ease 0.3s' }}>
-              <LogoCube3D />
-            </div>
+            {/* Right — logo premium */}
+            <LogoCube3D />
           </div>
 
           {/* Scroll hint */}
