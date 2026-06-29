@@ -548,9 +548,10 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] opacity-15 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse, #3b82f6 0%, transparent 70%)', filter: 'blur(80px)' }} aria-hidden />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
-          {/* World map hero — pleine section, derrière le texte */}
-          <LogoCube3D />
+        {/* World map — pleine section, absolute sur tout le hero */}
+        <LogoCube3D />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full">
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
 
