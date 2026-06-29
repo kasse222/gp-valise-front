@@ -50,120 +50,122 @@ function LiveCounter() {
   )
 }
 
-// ── 3D Logo CSS animé ────────────────────────────────────────────────────────
+// ── Hero logo — logo-icon.png réel + effets glow CSS ────────────────────────
 
 function LogoCube3D() {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 420, height: 420 }}>
-      {/* Outer glow rings */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className="w-80 h-80 rounded-full border border-blue-400/20"
-          style={{ animation: 'sm-spin-slow 12s linear infinite' }}
-          aria-hidden
-        />
-        <div
-          className="absolute w-72 h-72 rounded-full border border-blue-500/15"
-          style={{ animation: 'sm-spin-slow 8s linear infinite reverse' }}
-          aria-hidden
-        />
-        {/* Blue glow blob */}
-        <div
-          className="absolute w-64 h-64 rounded-full opacity-30 blur-3xl pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #3b82f6 0%, #1B3A6B 50%, transparent 80%)' }}
-          aria-hidden
-        />
-        {/* Outer particles */}
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: 460, height: 460 }}
+      role="img"
+      aria-label="Logo SafeMove"
+    >
+      {/* Anneau néon bas — effet plasma */}
+      <div
+        className="absolute"
+        style={{
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 340,
+          height: 60,
+          borderRadius: '50%',
+          background: 'transparent',
+          boxShadow: '0 0 40px 12px rgba(59,130,246,0.55), 0 0 80px 24px rgba(59,130,246,0.25)',
+          animation: 'sm-pulse-glow 2.5s ease-in-out infinite',
+        }}
+        aria-hidden
+      />
+
+      {/* Glow blob derrière le cube */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        aria-hidden
+      >
+        <div style={{
+          width: 300,
+          height: 300,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(59,130,246,0.28) 0%, rgba(27,58,107,0.18) 50%, transparent 75%)',
+          filter: 'blur(32px)',
+        }} />
+      </div>
+
+      {/* Anneaux orbitaux rotatifs */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        aria-hidden
+      >
+        {/* Grand anneau */}
+        <div style={{
+          position: 'absolute',
+          width: 400,
+          height: 400,
+          borderRadius: '50%',
+          border: '1px solid rgba(59,130,246,0.18)',
+          animation: 'sm-spin-slow 18s linear infinite',
+        }} />
+        {/* Anneau moyen */}
+        <div style={{
+          position: 'absolute',
+          width: 340,
+          height: 340,
+          borderRadius: '50%',
+          border: '0.5px solid rgba(96,165,250,0.12)',
+          animation: 'sm-spin-slow 12s linear infinite reverse',
+        }} />
+        {/* Particules orbitales */}
         {[0, 60, 120, 180, 240, 300].map((deg, i) => (
           <div
             key={i}
-            className="absolute w-1.5 h-1.5 rounded-full bg-blue-400/60"
             style={{
-              transform: `rotate(${deg}deg) translateX(140px)`,
-              animation: `sm-pulse-glow ${1.5 + i * 0.3}s ease-in-out infinite alternate`,
+              position: 'absolute',
+              width: i % 2 === 0 ? 5 : 3.5,
+              height: i % 2 === 0 ? 5 : 3.5,
+              borderRadius: '50%',
+              background: i % 3 === 0 ? '#3b82f6' : '#60a5fa',
+              opacity: 0.7 - i * 0.05,
+              transform: `rotate(${deg}deg) translateX(196px)`,
+              boxShadow: '0 0 6px 2px rgba(59,130,246,0.6)',
             }}
-            aria-hidden
           />
         ))}
       </div>
 
-      {/* The cube — CSS 3D */}
-      <div
-        className="relative z-10"
+      {/* Le vrai logo — logo-icon.png */}
+      <img
+        src="/logo-icon.png"
+        alt="SafeMove logo"
         style={{
-          width: 200,
-          height: 200,
+          width: 280,
+          height: 280,
+          objectFit: 'contain',
+          position: 'relative',
+          zIndex: 10,
           animation: 'sm-float 4s ease-in-out infinite',
-          filter: 'drop-shadow(0 40px 80px rgba(59,130,246,0.5))',
+          filter: [
+            'drop-shadow(0 0 24px rgba(59,130,246,0.6))',
+            'drop-shadow(0 0 48px rgba(59,130,246,0.3))',
+            'drop-shadow(0 24px 40px rgba(0,0,0,0.5))',
+          ].join(' '),
         }}
-        role="img"
-        aria-label="Logo SafeMove"
-      >
-        {/* Cube face top */}
-        <div
-          className="absolute"
-          style={{
-            width: 200,
-            height: 200,
-            background: 'linear-gradient(135deg, #0f2544 0%, #1B3A6B 100%)',
-            borderRadius: 24,
-            transform: 'perspective(600px) rotateX(20deg) rotateY(-20deg)',
-            boxShadow: '8px 8px 0 0 rgba(0,20,60,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
-          }}
-        >
-          {/* Top face overlay */}
-          <div
-            className="absolute inset-x-0 top-0"
-            style={{
-              height: '40%',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)',
-              borderRadius: '24px 24px 0 0',
-            }}
-            aria-hidden
-          />
-          {/* GP text */}
-          <div className="absolute inset-0 flex items-center justify-center select-none">
-            <span
-              style={{
-                fontFamily: 'system-ui, sans-serif',
-                fontSize: 80,
-                fontWeight: 900,
-                letterSpacing: '-0.05em',
-                lineHeight: 1,
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.95)', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>G</span>
-              <span style={{
-                background: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                textShadow: 'none',
-              }}>P</span>
-            </span>
-          </div>
-          {/* Slot on top */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2"
-            style={{
-              top: 16,
-              width: 32,
-              height: 8,
-              background: 'rgba(255,255,255,0.15)',
-              borderRadius: 4,
-            }}
-            aria-hidden
-          />
-          {/* Grid lines subtle */}
-          <div
-            className="absolute inset-0 opacity-5 rounded-[24px] overflow-hidden"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
-              backgroundSize: '25px 25px',
-            }}
-            aria-hidden
-          />
-        </div>
-      </div>
+      />
+
+      {/* Reflet/spéculaire en bas du cube */}
+      <div
+        className="absolute"
+        style={{
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 200,
+          height: 30,
+          borderRadius: '50%',
+          background: 'rgba(59,130,246,0.15)',
+          filter: 'blur(12px)',
+        }}
+        aria-hidden
+      />
     </div>
   )
 }
