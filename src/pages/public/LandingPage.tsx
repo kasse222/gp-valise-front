@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getTrips } from '@/api/trips'
@@ -100,7 +100,6 @@ function routePath(r: typeof ROUTES[0]) {
 
 function LogoCube3D() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const cubeRef      = useRef<HTMLDivElement>(null)
   const [show, setShow] = useState(false)
 
   useEffect(() => {
@@ -108,28 +107,11 @@ function LogoCube3D() {
     return () => clearTimeout(t)
   }, [])
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || !cubeRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const dx   = (e.clientX - rect.left - rect.width  / 2) / (rect.width  / 2)
-    const dy   = (e.clientY - rect.top  - rect.height / 2) / (rect.height / 2)
-    cubeRef.current.style.transform = `rotateX(${-dy * 8}deg) rotateY(${dx * 8}deg)`
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    if (cubeRef.current) cubeRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)'
-  }, [])
-
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       className="absolute inset-0 pointer-events-none lg:pointer-events-auto"
-      style={{
-        opacity:    show ? 1 : 0,
-        transition: 'opacity 1s ease 0.3s',
-      }}
+      style={{ opacity: show ? 1 : 0, transition: 'opacity 1s ease 0.3s' }}
       role="img"
       aria-label="SafeMove — réseau logistique Afrique-Europe"
     >
@@ -284,120 +266,7 @@ function LogoCube3D() {
           )
         })}
 
-        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~780,330) ── */}
-        {[
-          { rx: 165, ry: 55,  rot: -20, dur: '28s',  dir: 1,   op: 0.28 },
-          { rx: 132, ry: 42,  rot:  15, dur: '20s',  dir: -1,  op: 0.35 },
-          { rx: 100, ry: 32,  rot: -35, dur: '14s',  dir: 1,   op: 0.45 },
-          { rx: 198, ry: 65,  rot:   5, dur: '38s',  dir: -1,  op: 0.15 },
-        ].map((ring, i) => (
-          <g key={i} transform="translate(778,330)">
-            <g style={{
-              animation: `sm-spin-slow ${ring.dur} linear infinite ${ring.dir < 0 ? 'reverse' : ''}`,
-              transformOrigin: '0 0',
-            }}>
-              <ellipse
-                cx="0" cy="0"
-                rx={ring.rx} ry={ring.ry}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth={i === 2 ? 1.5 : 0.8}
-                opacity={ring.op}
-                transform={`rotate(${ring.rot})`}
-                filter="url(#route-glow)"
-              />
-              {/* Point lumineux sur l'anneau */}
-              {i <= 2 && (
-                <circle
-                  cx={ring.rx * Math.cos(ring.rot * Math.PI / 180)}
-                  cy={ring.ry * Math.sin(ring.rot * Math.PI / 180)}
-                  r={i === 2 ? 4 : 3}
-                  fill="#60a5fa"
-                  opacity="0.85"
-                  filter="url(#hub-glow)"
-                  transform={`rotate(${ring.rot})`}
-                />
-              )}
-            </g>
-          </g>
-        ))}
-
-        {/* ── Couche 5 : Halo radial derrière le logo ── */}
-        <ellipse cx="778" cy="330" rx="160" ry="135"
-          fill="#1d4ed8" opacity="0.20" filter="url(#logo-glow)"/>
-        <ellipse cx="778" cy="350" rx="110" ry="30"
-          fill="#3b82f6" opacity="0.25" filter="url(#logo-glow)"/>
-
-        {/* ── Couche 6 : Ombre/reflet sous le logo ── */}
-        <ellipse cx="778" cy="430" rx="90" ry="14"
-          fill="#3b82f6" opacity="0.20" filter="url(#hub-glow-lg)">
-          <animate attributeName="opacity" values="0.20;0.32;0.20" dur="4s" repeatCount="indefinite"/>
-        </ellipse>
       </svg>
-
-      {/* ── Couche 7 : Le vrai logo (positionné sur le SVG) ── */}
-      <div
-        style={{
-          position: 'absolute',
-          right:    '2%',
-          top:      '50%',
-          transform:'translateY(-52%)',
-          perspective: '800px',
-          zIndex:   20,
-        }}
-      >
-        <div
-          ref={cubeRef}
-          style={{
-            transition:     'transform 0.25s ease',
-            animation:      'sm-float 4s ease-in-out infinite',
-            transformStyle: 'preserve-3d',
-          }}
-        >
-          <img
-            src="/logo-icon-3D.png"
-            alt="SafeMove"
-            style={{
-              width:        360,
-              height:       360,
-              objectFit:    'contain',
-              display:      'block',
-              mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
-              filter: [
-                'drop-shadow(0 0 28px rgba(59,130,246,0.95))',
-                'drop-shadow(0 0 56px rgba(59,130,246,0.55))',
-                'drop-shadow(0 0 90px rgba(59,130,246,0.25))',
-                'brightness(1.1)',
-                'saturate(1.2)',
-              ].join(' '),
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ── Petites particules flottantes autour ── */}
-      {[
-        { top: '14%', right: '28%', s: 3,   delay: '0s',   dur: '3.2s' },
-        { top: '10%', right: '8%',  s: 2,   delay: '1s',   dur: '2.8s' },
-        { top: '42%', right: '1%',  s: 3.5, delay: '0.5s', dur: '4s'   },
-        { top: '70%', right: '5%',  s: 2.5, delay: '1.5s', dur: '3.5s' },
-        { top: '75%', right: '26%', s: 2,   delay: '0.8s', dur: '2.5s' },
-        { top: '30%', right: '32%', s: 2,   delay: '1.2s', dur: '3.8s' },
-      ].map((p, i) => (
-        <div
-          key={i}
-          className="absolute pointer-events-none"
-          aria-hidden="true"
-          style={{
-            top: p.top, right: p.right,
-            width: p.s, height: p.s,
-            borderRadius: '50%',
-            background: '#60a5fa',
-            boxShadow: `0 0 ${p.s * 3}px ${p.s}px rgba(96,165,250,0.7)`,
-            animation: `sm-float ${p.dur} ease-in-out ${p.delay} infinite`,
-          }}
-        />
-      ))}
     </div>
   )
 }
