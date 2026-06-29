@@ -197,6 +197,12 @@ export default function CreateTripPage() {
   const [capacityKg,     setCapacityKg]     = useState(10)
   const [pricePerKg,     setPricePerKg]     = useState(priceConfig.default)
   const [acceptedCats,   setAcceptedCats]   = useState<string[]>([])
+  // Tarifs spéciaux par catégorie — null = prix de base
+  const [categoryFees,   setCategoryFees]   = useState<Record<string, number | null>>({})
+
+  const setCategoryFee = (cat: string, value: number | null) => {
+    setCategoryFees(prev => ({ ...prev, [cat]: value }))
+  }
 
   useEffect(() => {
     const cfg = PRICE_CONFIG[currency] ?? PRICE_CONFIG['EUR']
@@ -256,6 +262,15 @@ export default function CreateTripPage() {
       price_per_kg: pricePerKgForBackend,
       currency:     currency,
       type_trip:    isRoundTrip ? 'round_trip' : 'one_way',
+      // Tarifs spéciaux par catégorie
+      ...(Object.keys(categoryFees).length > 0 ? {
+        category_fees: Object.entries(categoryFees)
+          .filter(([, v]) => v !== null && v > 0)
+          .map(([cat, fee]) => ({
+            category: cat,
+            fee: Math.round((fee as number) * (priceConfig.hasSubunit ? 100 : 1)),
+          })),
+      } : {}),
       ...(pickupExact ? {
         pickup_address:          pickupAddress || `${pickupExact.lat.toFixed(5)}, ${pickupExact.lng.toFixed(5)}`,
         pickup_city:             pickupCity || departureCity,
@@ -274,7 +289,7 @@ export default function CreateTripPage() {
         delivery_approx_longitude: deliveryApprox?.lng,
         delivery_instructions:     deliveryInstructions || undefined,
       } : {}),
-    }),
+    } as any),
     onSuccess: () => {
       toast.success('Trajet publié avec succès ! ✈️')
       queryClient.invalidateQueries({ queryKey: ['trips'] })
@@ -447,6 +462,74 @@ export default function CreateTripPage() {
                       </label>
                       <CategoryToggle selected={acceptedCats} onChange={setAcceptedCats} />
                     </div>
+
+                    {/* Tarifs spéciaux par catégorie */}
+                    {acceptedCats.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <label className="text-sm font-bold text-slate-700">
+                            Tarifs spéciaux par catégorie
+                          </label>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Laisser vide = prix de base {sym}{pricePerKg}/kg. Indiquer un prix spécifique pour les forfaits premium.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {CATEGORIES.filter(c => acceptedCats.includes(c.value)).map(cat => {
+                            const fee = categoryFees[cat.value]
+                            const hasCustom = fee !== null && fee !== undefined
+                            return (
+                              <div key={cat.value}
+                                className="flex items-center gap-3 p-3 bg-slate-50 rounded-[12px] border border-slate-100">
+                                <span className="text-lg shrink-0">{cat.icon}</span>
+                                <span className="text-sm font-semibold text-slate-700 flex-1 min-w-0">
+                                  {cat.label}
+                                </span>
+
+                                {/* Toggle prix custom */}
+                                <button
+                                  type="button"
+                                  onClick={() => setCategoryFee(
+                                    cat.value,
+                                    hasCustom ? null : pricePerKg
+                                  )}
+                                  className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${
+                                    hasCustom
+                                      ? 'bg-[#1B3A6B] text-white border-[#1B3A6B]'
+                                      : 'bg-white text-slate-500 border-slate-200 hover:border-[#1B3A6B]/40'
+                                  }`}
+                                >
+                                  {hasCustom ? 'Personnalisé' : 'Prix de base'}
+                                </button>
+
+                                {/* Input si prix custom activé */}
+                                {hasCustom && (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <input
+                                      type="number"
+                                      value={fee ?? ''}
+                                      onChange={e => setCategoryFee(cat.value, Number(e.target.value) || null)}
+                                      min={priceConfig.min}
+                                      max={priceConfig.max * 3}
+                                      step={priceConfig.step}
+                                      className="w-20 text-center bg-white border border-[#1B3A6B]/30 text-[#1B3A6B] font-black text-sm px-2 py-1.5 rounded-[8px] focus:outline-none focus:border-[#1B3A6B]"
+                                    />
+                                    <span className="text-xs text-slate-400 font-medium">{currency}/kg</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Preview gains avec tarifs custom */}
+                        {Object.values(categoryFees).some(v => v !== null) && (
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-[12px] text-xs text-blue-800">
+                            💡 Les tarifs par catégorie permettent de fixer un prix différent selon le type de colis (ex: tarif premium pour l'électronique).
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
