@@ -54,38 +54,38 @@ function LiveCounter() {
 // Couches : carte monde PNG → routes courbées SVG → hubs lumineux →
 //           particules animateMotion → anneaux orbitaux → logo GP → ombre
 
-// Coordonnées des villes dans l'espace SVG 960×540
+// Coordonnées décalées à droite (zone 500-900 sur 960px) pour éviter le texte
 const HUBS = [
   // Afrique
-  { id: 'casablanca', label: 'Casablanca', x: 390, y: 248 },
-  { id: 'dakar',      label: 'Dakar',      x: 310, y: 310 },
-  { id: 'abidjan',    label: 'Abidjan',    x: 380, y: 352 },
-  { id: 'bamako',     label: 'Bamako',     x: 350, y: 325 },
-  { id: 'cotonou',    label: 'Cotonou',    x: 420, y: 355 },
-  { id: 'tunis',      label: 'Tunis',      x: 468, y: 222 },
+  { id: 'casablanca', label: 'Casablanca', x: 560, y: 270 },
+  { id: 'dakar',      label: 'Dakar',      x: 490, y: 340 },
+  { id: 'abidjan',    label: 'Abidjan',    x: 540, y: 375 },
+  { id: 'bamako',     label: 'Bamako',     x: 510, y: 355 },
+  { id: 'cotonou',    label: 'Cotonou',    x: 580, y: 378 },
+  { id: 'tunis',      label: 'Tunis',      x: 620, y: 240 },
   // Europe
-  { id: 'paris',      label: 'Paris',      x: 462, y: 165 },
-  { id: 'marseille',  label: 'Marseille',  x: 474, y: 185 },
-  { id: 'bruxelles',  label: 'Bruxelles',  x: 472, y: 155 },
-  { id: 'madrid',     label: 'Madrid',     x: 438, y: 195 },
-  { id: 'milan',      label: 'Milan',      x: 488, y: 178 },
+  { id: 'paris',      label: 'Paris',      x: 620, y: 168 },
+  { id: 'marseille',  label: 'Marseille',  x: 638, y: 192 },
+  { id: 'bruxelles',  label: 'Bruxelles',  x: 635, y: 152 },
+  { id: 'madrid',     label: 'Madrid',     x: 590, y: 205 },
+  { id: 'milan',      label: 'Milan',      x: 655, y: 180 },
   // Moyen-Orient
-  { id: 'dubai',      label: 'Dubaï',      x: 600, y: 262 },
+  { id: 'dubai',      label: 'Dubaï',      x: 760, y: 275 },
 ]
 
 // Routes : source → destination, courbe de contrôle Bézier
 const ROUTES = [
-  { from: 'casablanca', to: 'paris',     cx: 430, cy: 140, dur: '5s',  delay: '0s' },
-  { from: 'casablanca', to: 'madrid',    cx: 410, cy: 165, dur: '4s',  delay: '1s' },
-  { from: 'dakar',      to: 'paris',     cx: 380, cy: 140, dur: '7s',  delay: '0.5s' },
-  { from: 'dakar',      to: 'marseille', cx: 420, cy: 155, dur: '6s',  delay: '2s' },
-  { from: 'abidjan',    to: 'paris',     cx: 400, cy: 130, dur: '8s',  delay: '1.5s' },
-  { from: 'abidjan',    to: 'bruxelles', cx: 420, cy: 125, dur: '9s',  delay: '3s' },
-  { from: 'bamako',     to: 'madrid',    cx: 390, cy: 158, dur: '6.5s',delay: '2.5s' },
-  { from: 'cotonou',    to: 'milan',     cx: 450, cy: 145, dur: '7.5s',delay: '0.8s' },
-  { from: 'tunis',      to: 'marseille', cx: 470, cy: 198, dur: '4.5s',delay: '1.2s' },
-  { from: 'casablanca', to: 'dubai',     cx: 510, cy: 220, dur: '10s', delay: '4s' },
-  { from: 'dakar',      to: 'bruxelles', cx: 400, cy: 118, dur: '9s',  delay: '0s' },
+  { from: 'casablanca', to: 'paris',     cx: 590, cy: 140, dur: '5s',  delay: '0s'   },
+  { from: 'casablanca', to: 'madrid',    cx: 572, cy: 165, dur: '4s',  delay: '1s'   },
+  { from: 'dakar',      to: 'paris',     cx: 548, cy: 130, dur: '7s',  delay: '0.5s' },
+  { from: 'dakar',      to: 'marseille', cx: 560, cy: 155, dur: '6s',  delay: '2s'   },
+  { from: 'abidjan',    to: 'paris',     cx: 558, cy: 120, dur: '8s',  delay: '1.5s' },
+  { from: 'abidjan',    to: 'bruxelles', cx: 565, cy: 115, dur: '9s',  delay: '3s'   },
+  { from: 'bamako',     to: 'madrid',    cx: 545, cy: 162, dur: '6.5s',delay: '2.5s' },
+  { from: 'cotonou',    to: 'milan',     cx: 605, cy: 145, dur: '7.5s',delay: '0.8s' },
+  { from: 'tunis',      to: 'marseille', cx: 632, cy: 210, dur: '4.5s',delay: '1.2s' },
+  { from: 'casablanca', to: 'dubai',     cx: 680, cy: 245, dur: '10s', delay: '4s'   },
+  { from: 'dakar',      to: 'bruxelles', cx: 552, cy: 108, dur: '9s',  delay: '0s'   },
 ]
 
 function getHub(id: string) {
@@ -284,14 +284,14 @@ function LogoCube3D() {
           )
         })}
 
-        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~570,380) ── */}
+        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~700,340) ── */}
         {[
           { rx: 155, ry: 52,  rot: -20, dur: '28s',  dir: 1,   op: 0.28 },
           { rx: 125, ry: 40,  rot:  15, dur: '20s',  dir: -1,  op: 0.35 },
           { rx:  95, ry: 30,  rot: -35, dur: '14s',  dir: 1,   op: 0.45 },
           { rx: 185, ry: 62,  rot:   5, dur: '38s',  dir: -1,  op: 0.15 },
         ].map((ring, i) => (
-          <g key={i} transform="translate(570,380)">
+          <g key={i} transform="translate(700,340)">
             <g style={{
               animation: `sm-spin-slow ${ring.dur} linear infinite ${ring.dir < 0 ? 'reverse' : ''}`,
               transformOrigin: '0 0',
@@ -323,29 +323,14 @@ function LogoCube3D() {
         ))}
 
         {/* ── Couche 5 : Halo radial derrière le logo ── */}
-        <ellipse
-          cx="570" cy="380"
-          rx="140" ry="120"
-          fill="#1d4ed8"
-          opacity="0.18"
-          filter="url(#logo-glow)"
-        />
-        <ellipse
-          cx="570" cy="400"
-          rx="100" ry="28"
-          fill="#3b82f6"
-          opacity="0.22"
-          filter="url(#logo-glow)"
-        />
+        <ellipse cx="700" cy="340" rx="140" ry="120"
+          fill="#1d4ed8" opacity="0.18" filter="url(#logo-glow)"/>
+        <ellipse cx="700" cy="360" rx="100" ry="28"
+          fill="#3b82f6" opacity="0.22" filter="url(#logo-glow)"/>
 
         {/* ── Couche 6 : Ombre/reflet sous le logo ── */}
-        <ellipse
-          cx="570" cy="468"
-          rx="80" ry="14"
-          fill="#3b82f6"
-          opacity="0.18"
-          filter="url(#hub-glow-lg)"
-        >
+        <ellipse cx="700" cy="430" rx="80" ry="14"
+          fill="#3b82f6" opacity="0.18" filter="url(#hub-glow-lg)">
           <animate attributeName="opacity" values="0.18;0.28;0.18" dur="4s" repeatCount="indefinite"/>
         </ellipse>
       </svg>
@@ -354,34 +339,37 @@ function LogoCube3D() {
       <div
         style={{
           position: 'absolute',
-          right: '8%',
-          top: '50%',
+          // Centre le logo dans la moitié droite de la section
+          right: '12%',
+          top:   '50%',
           transform: 'translateY(-50%)',
           perspective: '800px',
+          zIndex: 20,
         }}
       >
         <div
           ref={cubeRef}
           style={{
-            transition: 'transform 0.25s ease',
-            animation: 'sm-float 4s ease-in-out infinite',
-            transformStyle: 'preserve-3d',
+            transition:      'transform 0.25s ease',
+            animation:       'sm-float 4s ease-in-out infinite',
+            transformStyle:  'preserve-3d',
           }}
         >
           <img
             src="/logo-icon.png"
             alt="SafeMove"
             style={{
-              width: 220,
-              height: 220,
-              objectFit: 'contain',
-              display: 'block',
-              mixBlendMode: 'screen',
+              width:        260,
+              height:       260,
+              objectFit:    'contain',
+              display:      'block',
+              // screen blend supprime le fond blanc sur fond sombre
+              mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
               filter: [
-                'drop-shadow(0 0 28px rgba(59,130,246,1))',
-                'drop-shadow(0 0 56px rgba(59,130,246,0.55))',
-                'drop-shadow(0 0 84px rgba(59,130,246,0.25))',
-                'brightness(1.15)',
+                'drop-shadow(0 0 30px rgba(59,130,246,1))',
+                'drop-shadow(0 0 60px rgba(59,130,246,0.6))',
+                'drop-shadow(0 0 90px rgba(59,130,246,0.3))',
+                'brightness(1.2)',
               ].join(' '),
             }}
           />
