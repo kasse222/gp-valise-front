@@ -268,12 +268,12 @@ function LogoCube3D() {
 
       </svg>
 
-      {/* ── Logo GP — grand, côté droit, par dessus la carte ── */}
+      {/* ── Logo GP — grand, côté droit, centré verticalement ── */}
       <div
         style={{
           position:  'absolute',
-          right:     '-2%',
-          top:       '50%',
+          right:     '0%',
+          top:       '45%',
           transform: 'translateY(-50%)',
           zIndex:    20,
           animation: 'sm-float 4s ease-in-out infinite',
@@ -283,8 +283,8 @@ function LogoCube3D() {
           src="/logo-icon-3D.png"
           alt="SafeMove"
           style={{
-            width:        420,
-            height:       420,
+            width:        460,
+            height:       460,
             objectFit:    'contain',
             display:      'block',
             mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
