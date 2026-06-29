@@ -143,7 +143,7 @@ function LogoCube3D() {
         style={{
           inset: 0,
           background: [
-            'radial-gradient(ellipse 60% 55% at 50% 50%, rgba(59,130,246,0.22) 0%, transparent 70%)',
+            'radial-gradient(ellipse 55% 50% at 50% 50%, rgba(59,130,246,0.35) 0%, rgba(27,58,107,0.2) 50%, transparent 75%)',
           ].join(','),
         }}
       />
@@ -251,19 +251,33 @@ function LogoCube3D() {
             transformStyle: 'preserve-3d',
           }}
         >
+          {/* Glow derrière l'image — rendu avant l'image */}
+          <div style={{
+            position: 'absolute',
+            inset: -30,
+            borderRadius: '32px',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(27,58,107,0.3) 40%, transparent 70%)',
+            filter: 'blur(20px)',
+            zIndex: -1,
+          }} aria-hidden />
+
           <img
             src="/logo-icon.png"
             alt="SafeMove"
             style={{
-              width: 240,
-              height: 240,
+              width: 260,
+              height: 260,
               objectFit: 'contain',
               display: 'block',
+              // mix-blend-mode: screen supprime le fond blanc
+              // sur fond sombre, seuls les pixels colorés restent visibles
+              mixBlendMode: 'screen',
               filter: [
-                'drop-shadow(0 0 20px rgba(59,130,246,0.7))',
-                'drop-shadow(0 0 40px rgba(59,130,246,0.4))',
-                'drop-shadow(0 0 60px rgba(59,130,246,0.2))',
-                'drop-shadow(0 20px 30px rgba(0,0,0,0.6))',
+                'drop-shadow(0 0 30px rgba(59,130,246,0.9))',
+                'drop-shadow(0 0 60px rgba(59,130,246,0.5))',
+                'drop-shadow(0 0 90px rgba(59,130,246,0.25))',
+                'brightness(1.1)',
+                'contrast(1.05)',
               ].join(' '),
             }}
           />
