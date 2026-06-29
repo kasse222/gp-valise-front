@@ -50,256 +50,366 @@ function LiveCounter() {
   )
 }
 
-// ── Hero Premium — toutes les couches ───────────────────────────────────────
-// Couches : grille tech → glow radial → anneaux SVG → particules → cube logo
-// + parallaxe souris + flottement
+// ── Hero Premium World Map ────────────────────────────────────────────────────
+// Couches : carte monde PNG → routes courbées SVG → hubs lumineux →
+//           particules animateMotion → anneaux orbitaux → logo GP → ombre
+
+// Coordonnées des villes dans l'espace SVG 960×540
+const HUBS = [
+  // Afrique
+  { id: 'casablanca', label: 'Casablanca', x: 390, y: 248 },
+  { id: 'dakar',      label: 'Dakar',      x: 310, y: 310 },
+  { id: 'abidjan',    label: 'Abidjan',    x: 380, y: 352 },
+  { id: 'bamako',     label: 'Bamako',     x: 350, y: 325 },
+  { id: 'cotonou',    label: 'Cotonou',    x: 420, y: 355 },
+  { id: 'tunis',      label: 'Tunis',      x: 468, y: 222 },
+  // Europe
+  { id: 'paris',      label: 'Paris',      x: 462, y: 165 },
+  { id: 'marseille',  label: 'Marseille',  x: 474, y: 185 },
+  { id: 'bruxelles',  label: 'Bruxelles',  x: 472, y: 155 },
+  { id: 'madrid',     label: 'Madrid',     x: 438, y: 195 },
+  { id: 'milan',      label: 'Milan',      x: 488, y: 178 },
+  // Moyen-Orient
+  { id: 'dubai',      label: 'Dubaï',      x: 600, y: 262 },
+]
+
+// Routes : source → destination, courbe de contrôle Bézier
+const ROUTES = [
+  { from: 'casablanca', to: 'paris',     cx: 430, cy: 140, dur: '5s',  delay: '0s' },
+  { from: 'casablanca', to: 'madrid',    cx: 410, cy: 165, dur: '4s',  delay: '1s' },
+  { from: 'dakar',      to: 'paris',     cx: 380, cy: 140, dur: '7s',  delay: '0.5s' },
+  { from: 'dakar',      to: 'marseille', cx: 420, cy: 155, dur: '6s',  delay: '2s' },
+  { from: 'abidjan',    to: 'paris',     cx: 400, cy: 130, dur: '8s',  delay: '1.5s' },
+  { from: 'abidjan',    to: 'bruxelles', cx: 420, cy: 125, dur: '9s',  delay: '3s' },
+  { from: 'bamako',     to: 'madrid',    cx: 390, cy: 158, dur: '6.5s',delay: '2.5s' },
+  { from: 'cotonou',    to: 'milan',     cx: 450, cy: 145, dur: '7.5s',delay: '0.8s' },
+  { from: 'tunis',      to: 'marseille', cx: 470, cy: 198, dur: '4.5s',delay: '1.2s' },
+  { from: 'casablanca', to: 'dubai',     cx: 510, cy: 220, dur: '10s', delay: '4s' },
+  { from: 'dakar',      to: 'bruxelles', cx: 400, cy: 118, dur: '9s',  delay: '0s' },
+]
+
+function getHub(id: string) {
+  return HUBS.find(h => h.id === id)!
+}
+
+function routePath(r: typeof ROUTES[0]) {
+  const f = getHub(r.from)
+  const t = getHub(r.to)
+  return `M${f.x},${f.y} Q${r.cx},${r.cy} ${t.x},${t.y}`
+}
 
 function LogoCube3D() {
   const containerRef = useRef<HTMLDivElement>(null)
   const cubeRef      = useRef<HTMLDivElement>(null)
+  const [show, setShow] = useState(false)
 
-  // Parallaxe souris — inclinaison légère du cube
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 300)
+    return () => clearTimeout(t)
+  }, [])
+
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || !cubeRef.current) return
-    const rect    = containerRef.current.getBoundingClientRect()
-    const cx      = rect.left + rect.width  / 2
-    const cy      = rect.top  + rect.height / 2
-    const dx      = (e.clientX - cx) / (rect.width  / 2)
-    const dy      = (e.clientY - cy) / (rect.height / 2)
-    const rotX    = -dy * 10
-    const rotY    =  dx * 10
-    cubeRef.current.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`
+    const rect = containerRef.current.getBoundingClientRect()
+    const dx   = (e.clientX - rect.left - rect.width  / 2) / (rect.width  / 2)
+    const dy   = (e.clientY - rect.top  - rect.height / 2) / (rect.height / 2)
+    cubeRef.current.style.transform = `rotateX(${-dy * 8}deg) rotateY(${dx * 8}deg)`
   }, [])
 
   const handleMouseLeave = useCallback(() => {
-    if (!cubeRef.current) return
-    cubeRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)'
+    if (cubeRef.current) cubeRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)'
   }, [])
-
-  const [show, setShow] = useState(false)
-  useEffect(() => { const t = setTimeout(() => setShow(true), 300); return () => clearTimeout(t) }, [])
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative hidden lg:flex items-center justify-center"
+      className="absolute inset-0 pointer-events-none lg:pointer-events-auto"
       style={{
-        width: 480, height: 480,
-        opacity: show ? 1 : 0,
-        transform: show ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'opacity 0.9s ease, transform 0.9s ease',
+        opacity:    show ? 1 : 0,
+        transition: 'opacity 1s ease 0.3s',
       }}
       role="img"
-      aria-label="Logo SafeMove animé"
+      aria-label="SafeMove — réseau logistique Afrique-Europe"
     >
-      {/* ── Couche 1 : Carte du monde SVG très discrète ── */}
+      {/* ═══ SVG pleine section hero ═══ */}
       <svg
-        viewBox="0 0 480 480"
-        width="480" height="480"
-        className="absolute inset-0 pointer-events-none"
+        viewBox="0 0 960 540"
+        width="100%"
+        height="100%"
+        className="absolute inset-0"
+        preserveAspectRatio="xMidYMid slice"
         aria-hidden="true"
-        style={{ opacity: 0.07 }}
-      >
-        {/* Grille tech */}
-        <defs>
-          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(96,165,250,1)" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="480" height="480" fill="url(#grid)" />
-        {/* Points de nœuds tech */}
-        {[
-          [80,80],[160,60],[240,90],[320,70],[400,100],
-          [60,180],[140,160],[220,200],[300,170],[420,190],
-          [90,280],[170,260],[250,290],[350,265],[440,280],
-          [70,380],[150,360],[240,380],[330,370],[410,360],
-        ].map(([x,y], i) => (
-          <circle key={i} cx={x} cy={y} r="1.5" fill="#60a5fa" opacity="0.8"/>
-        ))}
-        {/* Lignes de connexion */}
-        {[
-          '80,80 160,60', '160,60 240,90', '240,90 320,70', '320,70 400,100',
-          '60,180 140,160', '140,160 220,200', '220,200 300,170',
-          '80,80 60,180', '160,60 140,160', '240,90 220,200', '320,70 300,170',
-          '90,280 170,260', '170,260 250,290', '250,290 350,265',
-          '60,180 90,280', '140,160 170,260', '220,200 250,290',
-          '70,380 150,360', '150,360 240,380', '240,380 330,370',
-          '90,280 70,380', '170,260 150,360', '250,290 240,380',
-        ].map((pts, i) => (
-          <line key={i}
-            x1={pts.split(' ')[0].split(',')[0]} y1={pts.split(' ')[0].split(',')[1]}
-            x2={pts.split(' ')[1].split(',')[0]} y2={pts.split(' ')[1].split(',')[1]}
-            stroke="#3b82f6" strokeWidth="0.4" opacity="0.6"
-          />
-        ))}
-      </svg>
-
-      {/* ── Couche 2 : Halo radial derrière le cube ── */}
-      <div
-        className="absolute pointer-events-none"
-        aria-hidden="true"
-        style={{
-          inset: 0,
-          background: [
-            'radial-gradient(ellipse 55% 50% at 50% 50%, rgba(59,130,246,0.35) 0%, rgba(27,58,107,0.2) 50%, transparent 75%)',
-          ].join(','),
-        }}
-      />
-
-      {/* ── Couche 3 : Anneaux SVG lumineux ── */}
-      <svg
-        viewBox="0 0 480 480"
-        width="480" height="480"
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
+        style={{ overflow: 'visible' }}
       >
         <defs>
-          <filter id="ring-glow">
+          {/* Glow filters */}
+          <filter id="hub-glow" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="3" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
-          <filter id="ring-glow-lg">
-            <feGaussianBlur stdDeviation="5" result="blur"/>
+          <filter id="hub-glow-lg" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
+          <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="logo-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="20" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          {/* Gradient pour les routes */}
+          <linearGradient id="route-grad-1" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0"/>
+            <stop offset="50%" stopColor="#60a5fa" stopOpacity="0.8"/>
+            <stop offset="100%" stopColor="#93c5fd" stopOpacity="0"/>
+          </linearGradient>
         </defs>
 
-        {/* Anneau externe — tourne lentement */}
-        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 25s linear infinite' }}>
-          <ellipse cx="240" cy="240" rx="210" ry="70"
-            fill="none" stroke="#3b82f6" strokeWidth="1"
-            opacity="0.3" filter="url(#ring-glow)"
-            transform="rotate(-20, 240, 240)"
-          />
-        </g>
+        {/* ── Couche 1 : Carte monde PNG ── */}
+        <image
+          href="/carte_monde.png"
+          x="0" y="0"
+          width="960" height="540"
+          preserveAspectRatio="xMidYMid slice"
+          opacity="0.08"
+          style={{ mixBlendMode: 'screen' }}
+        />
 
-        {/* Anneau moyen — sens inverse */}
-        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 18s linear infinite reverse' }}>
-          <ellipse cx="240" cy="240" rx="175" ry="55"
-            fill="none" stroke="#60a5fa" strokeWidth="1.5"
-            opacity="0.4" filter="url(#ring-glow)"
-            transform="rotate(15, 240, 240)"
-          />
-          {/* Point lumineux sur l'anneau moyen */}
-          <circle cx="415" cy="240" r="4" fill="#60a5fa" opacity="0.9" filter="url(#ring-glow)"/>
-        </g>
+        {/* ── Couche 2 : Routes courbées ── */}
+        {ROUTES.map((r, i) => {
+          const d = routePath(r)
+          return (
+            <g key={i}>
+              {/* Ligne de route — très discrète */}
+              <path
+                d={d}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="0.5"
+                strokeDasharray="4 6"
+                opacity="0.25"
+              />
+              {/* Ligne lumineuse par dessus */}
+              <path
+                d={d}
+                fill="none"
+                stroke="#60a5fa"
+                strokeWidth="1"
+                opacity="0.15"
+                filter="url(#route-glow)"
+              />
+              {/* Particule animée sur la route */}
+              <circle r="2.5" fill="#ffffff" opacity="0.9" filter="url(#hub-glow)">
+                <animateMotion
+                  dur={r.dur}
+                  begin={r.delay}
+                  repeatCount="indefinite"
+                  path={d}
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0;0.9;0.9;0"
+                  keyTimes="0;0.1;0.9;1"
+                  dur={r.dur}
+                  begin={r.delay}
+                  repeatCount="indefinite"
+                />
+              </circle>
+              {/* Traînée lumineuse */}
+              <circle r="1.5" fill="#60a5fa" opacity="0.6" filter="url(#hub-glow)">
+                <animateMotion
+                  dur={r.dur}
+                  begin={r.delay === '0s' ? '0.3s' : r.delay}
+                  repeatCount="indefinite"
+                  path={d}
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0;0.6;0.6;0"
+                  keyTimes="0;0.1;0.9;1"
+                  dur={r.dur}
+                  begin={r.delay === '0s' ? '0.3s' : r.delay}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            </g>
+          )
+        })}
 
-        {/* Anneau intérieur — luisant */}
-        <g style={{ transformOrigin: '240px 240px', animation: 'sm-spin-slow 12s linear infinite' }}>
-          <ellipse cx="240" cy="240" rx="140" ry="44"
-            fill="none" stroke="#93c5fd" strokeWidth="2"
-            opacity="0.5" filter="url(#ring-glow-lg)"
-            transform="rotate(-30, 240, 240)"
-          />
-          <circle cx="100" cy="240" r="5" fill="#93c5fd" opacity="0.95" filter="url(#ring-glow-lg)"/>
-        </g>
+        {/* ── Couche 3 : Hubs lumineux ── */}
+        {HUBS.map(hub => {
+          const isEurope = ['paris','marseille','bruxelles','madrid','milan'].includes(hub.id)
+          const isDubai  = hub.id === 'dubai'
+          return (
+            <g key={hub.id}>
+              {/* Halo externe pulsant */}
+              <circle cx={hub.x} cy={hub.y} r="8" fill="#3b82f6" opacity="0.08" filter="url(#hub-glow)">
+                <animate attributeName="r" values="6;10;6" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.08;0.15;0.08" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              {/* Cercle externe */}
+              <circle
+                cx={hub.x} cy={hub.y} r="4"
+                fill="none"
+                stroke={isEurope ? '#93c5fd' : isDubai ? '#fbbf24' : '#60a5fa'}
+                strokeWidth="0.8"
+                opacity="0.5"
+              />
+              {/* Point central */}
+              <circle
+                cx={hub.x} cy={hub.y} r="2.5"
+                fill={isEurope ? '#93c5fd' : isDubai ? '#fbbf24' : '#60a5fa'}
+                opacity="0.9"
+                filter="url(#hub-glow)"
+              />
+              {/* Label ville */}
+              <text
+                x={hub.x + (hub.id === 'casablanca' || hub.id === 'dakar' ? -8 : 8)}
+                y={hub.y - 6}
+                textAnchor={hub.id === 'casablanca' || hub.id === 'dakar' ? 'end' : 'start'}
+                fontSize="8"
+                fontFamily="system-ui, sans-serif"
+                fontWeight="600"
+                fill="#93c5fd"
+                opacity="0.55"
+                letterSpacing="0.05em"
+              >
+                {hub.label.toUpperCase()}
+              </text>
+            </g>
+          )
+        })}
 
-        {/* Anneau bas — plasma néon */}
-        <g style={{ transformOrigin: '240px 280px' }}>
-          <ellipse cx="240" cy="370" rx="120" ry="22"
-            fill="none" stroke="#3b82f6" strokeWidth="2"
-            opacity="0.5" filter="url(#ring-glow-lg)"
-            style={{ animation: 'sm-pulse-glow 2.5s ease-in-out infinite' }}
-          />
-        </g>
+        {/* ── Couche 4 : Anneaux orbitaux autour du logo (centré ~570,380) ── */}
+        {[
+          { rx: 155, ry: 52,  rot: -20, dur: '28s',  dir: 1,   op: 0.28 },
+          { rx: 125, ry: 40,  rot:  15, dur: '20s',  dir: -1,  op: 0.35 },
+          { rx:  95, ry: 30,  rot: -35, dur: '14s',  dir: 1,   op: 0.45 },
+          { rx: 185, ry: 62,  rot:   5, dur: '38s',  dir: -1,  op: 0.15 },
+        ].map((ring, i) => (
+          <g key={i} transform="translate(570,380)">
+            <g style={{
+              animation: `sm-spin-slow ${ring.dur} linear infinite ${ring.dir < 0 ? 'reverse' : ''}`,
+              transformOrigin: '0 0',
+            }}>
+              <ellipse
+                cx="0" cy="0"
+                rx={ring.rx} ry={ring.ry}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={i === 2 ? 1.5 : 0.8}
+                opacity={ring.op}
+                transform={`rotate(${ring.rot})`}
+                filter="url(#route-glow)"
+              />
+              {/* Point lumineux sur l'anneau */}
+              {i <= 2 && (
+                <circle
+                  cx={ring.rx * Math.cos(ring.rot * Math.PI / 180)}
+                  cy={ring.ry * Math.sin(ring.rot * Math.PI / 180)}
+                  r={i === 2 ? 4 : 3}
+                  fill="#60a5fa"
+                  opacity="0.85"
+                  filter="url(#hub-glow)"
+                  transform={`rotate(${ring.rot})`}
+                />
+              )}
+            </g>
+          </g>
+        ))}
+
+        {/* ── Couche 5 : Halo radial derrière le logo ── */}
+        <ellipse
+          cx="570" cy="380"
+          rx="140" ry="120"
+          fill="#1d4ed8"
+          opacity="0.18"
+          filter="url(#logo-glow)"
+        />
+        <ellipse
+          cx="570" cy="400"
+          rx="100" ry="28"
+          fill="#3b82f6"
+          opacity="0.22"
+          filter="url(#logo-glow)"
+        />
+
+        {/* ── Couche 6 : Ombre/reflet sous le logo ── */}
+        <ellipse
+          cx="570" cy="468"
+          rx="80" ry="14"
+          fill="#3b82f6"
+          opacity="0.18"
+          filter="url(#hub-glow-lg)"
+        >
+          <animate attributeName="opacity" values="0.18;0.28;0.18" dur="4s" repeatCount="indefinite"/>
+        </ellipse>
       </svg>
 
-      {/* ── Couche 4 : Particules orbitales animées ── */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        {[
-          { top: '8%',  left: '48%', size: 4,   delay: '0s',    dur: '3s',   color: '#60a5fa' },
-          { top: '20%', left: '88%', size: 3,   delay: '0.5s',  dur: '2.5s', color: '#93c5fd' },
-          { top: '75%', left: '90%', size: 3.5, delay: '1s',    dur: '4s',   color: '#3b82f6' },
-          { top: '88%', left: '48%', size: 4,   delay: '1.5s',  dur: '3.5s', color: '#60a5fa' },
-          { top: '75%', left: '8%',  size: 3,   delay: '0.8s',  dur: '2.8s', color: '#93c5fd' },
-          { top: '20%', left: '10%', size: 3.5, delay: '0.3s',  dur: '3.2s', color: '#3b82f6' },
-          { top: '50%', left: '92%', size: 2.5, delay: '1.2s',  dur: '2.2s', color: '#bfdbfe' },
-          { top: '42%', left: '5%',  size: 2.5, delay: '0.6s',  dur: '3.8s', color: '#bfdbfe' },
-        ].map((p, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              top: p.top, left: p.left,
-              width:  p.size,
-              height: p.size,
-              borderRadius: '50%',
-              background: p.color,
-              boxShadow: `0 0 ${p.size * 3}px ${p.size}px ${p.color}80`,
-              animation: `sm-float ${p.dur} ease-in-out ${p.delay} infinite`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* ── Couche 5 : Le cube logo avec perspective 3D ── */}
+      {/* ── Couche 7 : Le vrai logo (positionné sur le SVG) ── */}
       <div
         style={{
-          position: 'relative',
-          zIndex: 10,
+          position: 'absolute',
+          right: '8%',
+          top: '50%',
+          transform: 'translateY(-50%)',
           perspective: '800px',
-          perspectiveOrigin: '50% 50%',
         }}
       >
         <div
           ref={cubeRef}
           style={{
-            transition: 'transform 0.3s ease',
+            transition: 'transform 0.25s ease',
             animation: 'sm-float 4s ease-in-out infinite',
             transformStyle: 'preserve-3d',
           }}
         >
-          {/* Glow derrière l'image — rendu avant l'image */}
-          <div style={{
-            position: 'absolute',
-            inset: -30,
-            borderRadius: '32px',
-            background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, rgba(27,58,107,0.3) 40%, transparent 70%)',
-            filter: 'blur(20px)',
-            zIndex: -1,
-          }} aria-hidden />
-
           <img
             src="/logo-icon.png"
             alt="SafeMove"
             style={{
-              width: 260,
-              height: 260,
+              width: 220,
+              height: 220,
               objectFit: 'contain',
               display: 'block',
-              // mix-blend-mode: screen supprime le fond blanc
-              // sur fond sombre, seuls les pixels colorés restent visibles
               mixBlendMode: 'screen',
               filter: [
-                'drop-shadow(0 0 30px rgba(59,130,246,0.9))',
-                'drop-shadow(0 0 60px rgba(59,130,246,0.5))',
-                'drop-shadow(0 0 90px rgba(59,130,246,0.25))',
-                'brightness(1.1)',
-                'contrast(1.05)',
+                'drop-shadow(0 0 28px rgba(59,130,246,1))',
+                'drop-shadow(0 0 56px rgba(59,130,246,0.55))',
+                'drop-shadow(0 0 84px rgba(59,130,246,0.25))',
+                'brightness(1.15)',
               ].join(' '),
             }}
           />
         </div>
       </div>
 
-      {/* ── Ombre douce sous le cube ── */}
-      <div
-        className="absolute pointer-events-none"
-        aria-hidden="true"
-        style={{
-          bottom: 60,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 180,
-          height: 24,
-          borderRadius: '50%',
-          background: 'rgba(59,130,246,0.18)',
-          filter: 'blur(14px)',
-          animation: 'sm-float 4s ease-in-out infinite',
-        }}
-      />
+      {/* ── Petites particules flottantes autour ── */}
+      {[
+        { top: '15%', right: '25%', s: 3,   delay: '0s',   dur: '3.2s' },
+        { top: '12%', right: '12%', s: 2,   delay: '1s',   dur: '2.8s' },
+        { top: '45%', right: '4%',  s: 3.5, delay: '0.5s', dur: '4s'   },
+        { top: '72%', right: '18%', s: 2.5, delay: '1.5s', dur: '3.5s' },
+        { top: '78%', right: '34%', s: 2,   delay: '0.8s', dur: '2.5s' },
+      ].map((p, i) => (
+        <div
+          key={i}
+          className="absolute pointer-events-none"
+          aria-hidden="true"
+          style={{
+            top: p.top, right: p.right,
+            width: p.s, height: p.s,
+            borderRadius: '50%',
+            background: '#60a5fa',
+            boxShadow: `0 0 ${p.s * 3}px ${p.s}px rgba(96,165,250,0.7)`,
+            animation: `sm-float ${p.dur} ease-in-out ${p.delay} infinite`,
+          }}
+        />
+      ))}
     </div>
   )
 }
@@ -581,7 +691,10 @@ export default function LandingPage() {
           style={{ background: 'radial-gradient(ellipse, #3b82f6 0%, transparent 70%)', filter: 'blur(80px)' }} aria-hidden />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* World map hero — pleine section, derrière le texte */}
+          <LogoCube3D />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
 
             {/* Left */}
             <div className="flex flex-col gap-7"
@@ -651,8 +764,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right — logo premium */}
-            <LogoCube3D />
+            {/* Right column — vide, le logo est positionné en absolute dans LogoCube3D */}
+            <div className="hidden lg:block" aria-hidden="true" />
           </div>
 
           {/* Scroll hint */}
